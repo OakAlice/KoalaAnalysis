@@ -1,7 +1,8 @@
 ## Execute the script, all functions in order
 
 library(pacman)
-p_load(here, dplyr, tidyverse, kohonen, data.table, lattice, glue, moments, fs, grid, png, reshape2, e1071)
+p_load(dplyr, tidyverse, randomForest, caret, e1071)
+      # kohonen, data.table, lattice, glue, moments, fs, grid, png, reshape2, e1071)
 
 # source the variables on the preceding script
 source("UserInput.R")
@@ -48,7 +49,28 @@ for (window_length in window) { # for each of the windows
       # Define the correct subdirectory path using Experiment path, window, and overlap
       file_path <- file.path(Experiment_path, paste0(window_length, "_sec_window"), paste0(overlap_percent, "%_overlap"), 'Processed_Data.csv')
       print(file_path)
-      split_condition(file_path, threshold, split, trainingPercentage)
+      split_condition(file_path, modelArchitecture, threshold, split, trainingPercentage)
+    }
+  }
+}
+
+#### RUNNING THE RANDOM FOREST ####
+for (window_length in window) { # for each of the windows
+  for (overlap_percent in overlap) { # for each of the overlaps
+    for (split in splitMethod) { # for each of the split methods 
+      # Define the correct subdirectory path using Experiment path, window, and overlap
+      trDatPath <- file.path(Experiment_path, paste0(window_length, "_sec_window"), paste0(overlap_percent, "%_overlap"), split, 'TrainingData.csv')
+      tstDatPath <- file.path(Experiment_path, paste0(window_length, "_sec_window"), paste0(overlap_percent, "%_overlap"), split, 'TestingData.csv')
+      
+      trDat <- read_csv(trDatPath, show_col_types = FALSE)
+      tstDat <- read_csv(tstDatPath, show_col_types = FALSE)
+      
+      # train the model
+      rf_model <- train_rf_model(trDat, ntree)
+      # extract testing data and format
+      test_predictions <- predict_rf_model(rf_model, tstDat)
+      # test the model and print out the confusion matrix
+      evaluate_rf_model(test_predictions, tstDat)
     }
   }
 }

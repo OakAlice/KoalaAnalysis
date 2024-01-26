@@ -1,4 +1,0 @@
-R script and workflow for analysing data from the UQ koala project. I collected data for this project in my honours and it has subsequently been continued by Gabby in her PhD. I aim to create a user-friendly workflow with a mixture of variable and user-input parameters that we can use to analyse this data under a range of conditions. I have endeavoured to make it as transferable and generic as possible, but some of the scripts are unique to my necessary use-case (as a result of having collected realllllllyy bad data in my honours).
-
-1. CleanTrainingData.R -> Cleaning and organising the training data from matlab to csv (this is just for me)
-2. UserInput.R -> Entering all variables for each of the experiments

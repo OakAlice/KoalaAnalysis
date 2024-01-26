@@ -44,14 +44,18 @@ trainingPercentage <- 0.6
 validationPercentage <- 0.2
 # testingPercentage is the remainder
 
+# Model architecture, RF or SOM
+modelArchitecture <- "RF"
+
 # Sampling Threshold, run the below code to visualise the dataset and choose a threshold
-####### THIS IS GOING TO HAVE TO BE AUTO, OR A PROMPT SCREEN???
-threshold <- NA
+####### THIS IS GOING TO HAVE TO BE AUTO, OR A PROMPT SCREEN??? # FIX
+threshold <- 800
 
 #### CAN TRIAL MULTIPLE PER RUN ####
 
-# rlen (number of data presentation epochs)
+# hyperparamters ### need to make this with multiple versions
 data_presentations <- c(10)
+ntree <- 40
 
 # Window length, in seconds
 window <- c(0.5, 1, 2)
