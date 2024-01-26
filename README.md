@@ -14,11 +14,11 @@ This script can be used to produce a RF from any raw accelerometry data. You can
 - ReformattingData.R -> Reformat the data based on the user variables
 - GeneralFunctions.R -> Other stuff needed elsewhere
 - GeneratingFeatures.R -> Creating the features across all the data
-- SplitData.R -> Split into the training, validation, and testing sets
+- SplitData.R -> Split into the training, validation, and testing sets # TODO: make validation split and 2 kinds of chronolgoical split dependent on ID column existing/not
 
 ## Model Application and Validation
-- RandomForest.R -> Apply Random forest training and validation
-- Results.R -> Display the results from all the test variations
+- RandomForest.R -> Apply Random forest training and validation # currently very basic
+- Results.R -> Display the results from all the test variations # not started
 
 ## Plots
-- Plot.R -> Plot the behaviours across time
+- Plot.R -> Plot the behaviours across time # not started
