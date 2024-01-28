@@ -28,16 +28,18 @@ create_experiment_directories <- function(Experiment_path, window, overlap, spli
   for (w in window) {
     for (o in overlap) {
       for (s in splitMethod) {
-        for (e in data_presentations) {
-          # Construct the path for the directory
-          path <- file.path(Experiment_path, paste0(w, "_sec_window"), paste0(o, "%_overlap"), s, paste0(e, "_epochs"))
+        for (m in modelArchitecture) {
+          for (e in data_presentations) {
+            #Construct the path for the directory
+            path <- file.path(Experiment_path, paste0(w, "_sec_window"), paste0(o, "%_overlap"), s, m, paste0(e, "_param"))
           
-          # Check if directory exists, if not, create it
-          if (!dir.exists(path)) {
-            dir.create(path, recursive = TRUE, showWarnings = TRUE)
-            message("Created directory: ", path)
-          } else {
-            message("Directory already exists: ", path)
+            # Check if directory exists, if not, create it
+            if (!dir.exists(path)) {
+              dir.create(path, recursive = TRUE, showWarnings = TRUE)
+              message("Created directory: ", path)
+            } else {
+              message("Directory already exists: ", path)
+            }
           }
         }
       }

@@ -56,95 +56,104 @@ for (window_length in window) { # for each of the windows
   }
 }
 
-#### RUNNING THE RANDOM FOREST ####
-for (window_length in window) { # for each of the windows
-  for (overlap_percent in overlap) { # for each of the overlaps
-    for (split in splitMethod) { # for each of the split methods 
-      # Define the correct subdirectory path using Experiment path, window, and overlap
-      trDatPath <- file.path(Experiment_path, paste0(window_length, "_sec_window"), paste0(overlap_percent, "%_overlap"), split, 'TrainingData.csv')
-      tstDatPath <- file.path(Experiment_path, paste0(window_length, "_sec_window"), paste0(overlap_percent, "%_overlap"), split, 'TestingData.csv')
-      
-      trDat <- read_csv(trDatPath, show_col_types = FALSE)
-      tstDat <- read_csv(tstDatPath, show_col_types = FALSE)
-      
-      # train the model
-      rf_model <- train_rf_model(trDat, ntree)
-      # extract testing data and format
-      test_predictions <- predict_rf_model(rf_model, tstDat)
-      # test the model and print out the confusion matrix
-      evaluate_rf_model(test_predictions, tstDat)
+#### RUNNING MODELS ####
+if ("RF" %in% modelArchitecture){
+  # random forest
+  for (window_length in window) { # for each of the windows
+    for (overlap_percent in overlap) { # for each of the overlaps
+      for (split in splitMethod) { # for each of the split methods 
+        for (trees in ntree) { # for each of the tree numbers 
+          # Define the correct sub-directory path using Experiment path, window, and overlap
+          trDatPath <- file.path(Experiment_path, paste0(window_length, "_sec_window"), paste0(overlap_percent, "%_overlap"), split, 'TrainingData.csv')
+          tstDatPath <- file.path(Experiment_path, paste0(window_length, "_sec_window"), paste0(overlap_percent, "%_overlap"), split, 'TestingData.csv')
+          
+          trDat <- read_csv(trDatPath, show_col_types = FALSE)
+          tstDat <- read_csv(tstDatPath, show_col_types = FALSE)
+          
+          # train the model #simple: add hyperparameters later
+          rf_model <- train_rf_model(trDat, ntree)
+          
+          # extract testing data and format
+          test_predictions <- predict_rf_model(rf_model, tstDat)
+          
+          # test the model
+          metrics_df <- evaluate_rf_model(test_predictions, tstDat)
+          write.csv(metrics_df, file.path(Experiment_path, paste0(window_length, "_sec_window"), 
+                    paste0(overlap_percent, "%_overlap"), split, "RF", paste0(trees, "_param")))
+          
+          # reformat and save outcomes to the respective folders
+          #summary_df <- save_rf_model(rf_model, metrics_df)
+          
+          #write_csv(summary_df, file.path(Experiment_path, paste0(window_length, "_sec_window"), 
+                      #paste0(overlap_percent, "%_overlap"), split, "RF", paste0(tree, "_param")))
+        }
+      }
     }
   }
-}
-
-
-
-
-
-
-
-#### CHANGE FROM HERE
-
-
-
-
-
-#### Trial SOM shapes ####
-for (window_length in window) { # for each of the windows
-  for (overlap_percent in overlap) { # for each of the overlaps
-    for (split in splitMethod) { # for each of the split methods 
-      
-      #window_length <- 1
-      #overlap_percent <- 0
-      #split <- c("LOIO")
-      
-      file_path <- file.path(Experiment_path, paste0(window_length, "_sec_window"), paste0(overlap_percent, "%_overlap"), split)
-      
-      # progress tracking
-      print(file_path)
-      
-      load(file = file.path(file_path, "TrainingData.rda"))
-      load(file = file.path(file_path, "TestingData.rda")) # this makes Jack sad, :(
-      optimal_dimensions <- run_som_tests(trDat, tstDat, file_path)
-      write.csv(optimal_dimensions, file.path(file_path, "Optimal_dimensions.csv"))
-    }
-  }
-}
-
-#### DEVELOP THE SOM MAPS ####
-# Essentially the same execution as above, but using the optimal dimensions
-for (window_length in window) { # for each of the windows
-  for (overlap_percent in overlap) { # for each of the overlaps
-    for (split in splitMethod) { # for each of the split methods 
-      for (epochs in data_presentations) { # for each of the rlen lengths
+} else if ("SOM" %in% modelArchitecture) {
+  
+  # Self-organising map
+  for (window_length in window) { # for each of the windows
+    for (overlap_percent in overlap) { # for each of the overlaps
+      for (split in splitMethod) { # for each of the split methods 
         
         #window_length <- 1
         #overlap_percent <- 0
         #split <- c("LOIO")
-        # epochs <- data_presentations[1]
         
-        file_path <- file.path(Experiment_path, paste0(window_length, "_sec_window"), 
-                               paste0(overlap_percent, "%_overlap"), split)
+        file_path <- file.path(Experiment_path, paste0(window_length, "_sec_window"), paste0(overlap_percent, "%_overlap"), split)
         
         # progress tracking
         print(file_path)
         
-        # load the files
         load(file = file.path(file_path, "TrainingData.rda"))
-        load(file = file.path(file_path, "TestingData.rda"))
-        optimal_dimensions <- read.csv(file = file.path(file_path, "Optimal_dimensions.csv"))
-        
-        # extract the shape
-        width <- optimal_dimensions$Width
-        height <- optimal_dimensions$Height
-        
-        # produce the results
-        som_results <- performOptimalSOM(trDat, tstDat, width, height, file_path, epochs)
-        save_and_plot_optimal_SOM(trDat, tstDat, width, height, file_path, epochs)
+        load(file = file.path(file_path, "TestingData.rda")) # this makes Jack sad, :(
+        optimal_dimensions <- run_som_tests(trDat, tstDat, file_path)
+        write.csv(optimal_dimensions, file.path(file_path, "Optimal_dimensions.csv"))
+      }
+    }
+  }
+  
+  #### DEVELOP THE SOM MAPS ####
+  # Essentially the same execution as above, but using the optimal dimensions
+  for (window_length in window) { # for each of the windows
+    for (overlap_percent in overlap) { # for each of the overlaps
+      for (split in splitMethod) { # for each of the split methods 
+        for (epochs in data_presentations) { # for each of the rlen lengths
+          
+          #window_length <- 1
+          #overlap_percent <- 0
+          #split <- c("LOIO")
+          # epochs <- data_presentations[1]
+          
+          file_path <- file.path(Experiment_path, paste0(window_length, "_sec_window"), 
+                                 paste0(overlap_percent, "%_overlap"), split)
+          
+          # progress tracking
+          print(file_path)
+          
+          # load the files
+          load(file = file.path(file_path, "TrainingData.rda"))
+          load(file = file.path(file_path, "TestingData.rda"))
+          optimal_dimensions <- read.csv(file = file.path(file_path, "Optimal_dimensions.csv"))
+          
+          # extract the shape
+          width <- optimal_dimensions$Width
+          height <- optimal_dimensions$Height
+          
+          # produce the results
+          som_results <- performOptimalSOM(trDat, tstDat, width, height, file_path, epochs)
+          save_and_plot_optimal_SOM(trDat, tstDat, width, height, file_path, epochs)
+        }
       }
     }
   }
 }
+
+
+
+
+
 
 #### SOM Results ####
 Results_tables <- find_all_instances(paste0("Experiment_", ExperimentNumber), "Statistical_results.csv")

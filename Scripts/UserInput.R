@@ -1,5 +1,4 @@
 # User Input
-
 # The script where the variables are entered and selected
 
 #### ONE VARIABLE / SET PER RUN ####
@@ -13,8 +12,7 @@ save_directory <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Redo"
 # The data to analyse
 MovementData <- "C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Data/TrainingData2.csv"
 
-# if tagging by individuals # my koalas dont have this functionality
-# how many individuals to sample, set to NA if all
+# if tagging by individuals # how many individuals to sample, set to NA if all
 test_individuals <- NA
 
 # Desired sampling frequency, as Hz (potentially different from actual sampling frequency)
@@ -40,28 +38,29 @@ selectedBehaviours <- c("Climb_1", "Climb_2", "Climb_3", "Climb_4",
 featuresList <- c("mean", "max", "min", "sd", "cor", "SMA", "minODBA", "maxODBA", "minVDBA", "maxVDBA")
 
 # Proportion of training data, as a decimal percentage (for chronological and random only)
-trainingPercentage <- 0.6
+trainingPercentage <- 0.4
 validationPercentage <- 0.2
 # testingPercentage is the remainder
+
+
+# Training Testing split method (choose from: random, chronological, LOIO)
+splitMethod <- c("chronological")
 
 # Model architecture, RF or SOM
 modelArchitecture <- "RF"
 
 # Sampling Threshold, run the below code to visualise the dataset and choose a threshold
 ####### THIS IS GOING TO HAVE TO BE AUTO, OR A PROMPT SCREEN??? # FIX
-threshold <- 100
+threshold <- 300
 
 #### CAN TRIAL MULTIPLE PER RUN ####
 
 # hyperparamters ### need to make this with multiple versions
-data_presentations <- c(10)
-ntree <- 40
+data_presentations <- c(40)
+ntree <- c(40)
 
 # Window length, in seconds
 window <- c(0.5, 1)
 
-# Window overlap, as a % # if <0, is overlapping
+# Window overlap, as a decimal percentage # if <0, is overlapping
 overlap <- c(0)
-
-# Training Testing split method (choose from: random, chronological, LOIO)
-splitMethod <- c("chronological")
