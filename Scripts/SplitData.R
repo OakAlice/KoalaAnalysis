@@ -26,116 +26,86 @@ balance_data <- function(dat, threshold) {
 }
 
 # process the data
-split_condition <- function(file_path, modelArchitecture, threshold, split, trainingPercentage) {
+split_condition <- function(file_path, modelArchitecture, threshold, split, trainingPercentage, window_length, overlap_percent, test_individuals = NULL) {
   
-  dat <- read.csv(file_path)
-  dat <- na.omit(dat)
-  
-  # Balance the data
+  dat <- read.csv(paste0(file_path, "/Processed_Data.csv")) %>% na.omit()
   dat <- balance_data(dat, threshold)
   
-  # Split data by different conditions
+  remove_columns <- function(df) {
+    df %>% select(-any_of(c("time", "n", "X", "over_threshold")))
+  }
+  
   if (split == "random") {
-    
-    # if split is random, select randomly based on the specified trainingPercentage
-    ind <- dat %>% 
+    index <- dat %>% 
       group_by(activity) %>%
       sample_frac(trainingPercentage)
     
-    trDat <- ind
-    # remove the first and last 2 columns
-    trDat <- trDat %>%
-      select(-1, -ncol(trDat), -(ncol(trDat)-1))
+    trDat <- remove_columns(index)
+    tstDat <- remove_columns(anti_join(dat, index, by = "activity"))
     
-    tstDat <- anti_join(dat, ind, by = "X")
-    # remove the first and last 2 columns
-    tstDat <- tstDat %>%
-      select(-1, -ncol(tstDat), -(ncol(tstDat)-1))
-    
-  } else if (split == "chronological") { 
-    
-    # Group by ID and behavior, take the first % as the training 
-    # and calculate the split index for each ID-behavior combination
-    
-    # if there is an ID column:
-    id_behavior_split <- dat %>%
-      group_by(ID, activity) %>%
-      mutate(split_index = floor(trainingPercentage * n()))
-    
-    # Split data into training and testing based on the calculated split index for each ID-behavior combination
-    train_data_list <- id_behavior_split %>%
-      group_by(ID, activity) %>%
-      group_split() %>%
-      lapply(function(.x) .x[1:unique(.x$split_index[1]), ])
-    
-    test_data_list <- id_behavior_split %>%
-      group_by(ID, activity) %>%
-      group_split() %>%
-      lapply(function(.x) .x[(unique(.x$split_index[1]) + 1):nrow(.x), ])
-    
-    # Combine all the training and testing data
-    trDat <- bind_rows(train_data_list)
-    tstDat <- bind_rows(test_data_list)
-    
-    # if there is not an ID column, 
-    # list column 'time' chronologically and then take the percentages from there
+  } else if (split == "chronological") {
+    if ("ID" %in% colnames(dat)) {
+      id_behavior_split <- dat %>%
+        group_by(ID, activity) %>%
+        mutate(split_index = floor(trainingPercentage * n()))
+      
+      # Define a function to slice data based on split_index
+      slice_data <- function(df) {
+        split_point <- unique(df$split_index[1])
+        list(training = df[1:split_point, ], testing = df[(split_point + 1):nrow(df), ])
+      }
+      
+      split_lists <- id_behavior_split %>% 
+        group_split(ID, activity) %>%
+        map(slice_data)
+      
+      trDat <- bind_rows(map(split_lists, "training")) %>% remove_columns()
+      tstDat <- bind_rows(map(split_lists, "testing")) %>% remove_columns()
+      
+    } else {
+      dat <- dat %>% arrange(time)
+      num_rows_to_sample <- floor(nrow(dat) * trainingPercentage)
+      
+      print(nrow(dat))
+      num_rows_to_sample
+      
+      trDat <- dat[1:num_rows_to_sample, ] %>% remove_columns()
+      tstDat <- anti_join(dat, trDat) %>% remove_columns()
+    }
     
   } else if (split == "LOIO") {
+    # Ensure test_individuals is provided for LOIO split
+    if (is.null(test_individuals)) {
+      stop("test_individuals must be provided for LOIO split")
+    }
     
-    number_leave_out <- ceiling((1-trainingPercentage)*test_individuals)
+    number_leave_out <- ceiling((1 - trainingPercentage) * test_individuals)
+    selected_individual <- sample(unique(dat$ID), number_leave_out)
     
-    # Sample a random individual from the dataset
-    unique_IDs <- unique(dat$ID)
-    selected_individual <- sample(unique_IDs, number_leave_out)
-    #selected_individual <- 20
-    
-    tstDat <- dat %>% filter(ID %in% selected_individual)
-    
-    trDat <- subset(dat, !(ID %in% selected_individual))
-    
+    tstDat <- dat %>% filter(ID %in% selected_individual) %>% remove_columns()
+    trDat <- dat %>% filter(!(ID %in% selected_individual)) %>% remove_columns()
   }
   
   # Formatting the data for the SOM
-  trSamp2 <- function(x) { 
-    d <- x[,2:21] # TODO: why/how is this hardcoded. ####
-    activity <- as.factor(x$activity) # Corresponding activities
-    out <- list(measurements = as.matrix(d), activity = activity)
-    return(out)
+  trSamp2 <- function(x) {
+    # Assuming columns 2 to 21 are the relevant features
+    features <- x[,2:21]
+    activities <- as.factor(x$activity)
+    list(measurements = as.matrix(features), activity = activities)
   }
   
-  # Default extension for other than SOM
-  csv_extension <- ".csv"
-  
-  # Apply trSamp2 to the data for the SOM and adjust the file extension. Otherwise, leave as normal
+  # Save data based on model architecture
   if (modelArchitecture == "SOM") {
     trDat <- trSamp2(trDat)
     tstDat <- trSamp2(tstDat)
     rda_extension <- ".rda"
     
-    # Save the training data as .rda file
-    training_file_path <- file.path(Experiment_path, paste0(window_length, "_sec_window"), 
-                                    paste0(overlap_percent, "%_overlap"), split, 
-                                    paste0('TrainingData', rda_extension))
-    save(trDat, file = training_file_path)
-    
-    # Save the testing data as .rda file
-    testing_file_path <- file.path(Experiment_path, paste0(window_length, "_sec_window"), 
-                                   paste0(overlap_percent, "%_overlap"), split, 
-                                   paste0('TestingData', rda_extension))
-    save(tstDat, file = testing_file_path)
+    save(trDat, file = file.path(file_path, splitt, paste0('TrainingData', rda_extension)))
+    save(tstDat, file = file.path(file_path, splitt, paste0('TestingData', rda_extension)))
     
   } else {
-    # Save the training data as .csv file
-    training_file_path <- file.path(Experiment_path, paste0(window_length, "_sec_window"), 
-                                    paste0(overlap_percent, "%_overlap"), split, 
-                                    paste0('TrainingData', csv_extension))
-    write_csv(trDat, training_file_path)
-    
-    # Save the testing data as .csv file
-    testing_file_path <- file.path(Experiment_path, paste0(window_length, "_sec_window"), 
-                                   paste0(overlap_percent, "%_overlap"), split, 
-                                   paste0('TestingData', csv_extension))
-    write_csv(tstDat, testing_file_path)
+    csv_extension <- ".csv"
+    write_csv(trDat, file.path(file_path, splitt, paste0('TrainingData', csv_extension)))
+    write_csv(tstDat, file.path(file_path, splitt, paste0('TestingData', csv_extension)))
   }
-  
 }

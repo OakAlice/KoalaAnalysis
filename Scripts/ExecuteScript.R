@@ -4,6 +4,8 @@ library(pacman)
 p_load(dplyr, tidyverse, randomForest, caret, e1071)
       # kohonen, data.table, lattice, glue, moments, fs, grid, png, reshape2, e1071)
 
+setwd("C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Scripts") # scripts location
+
 # source the variables on the preceding script
 source("UserInput.R")
 source("ReformattingData.R")
@@ -45,11 +47,11 @@ for (window_length in window) { # for each of the windows
 #### Create Training and Testing Data ####
 for (window_length in window) { # for each of the windows
   for (overlap_percent in overlap) { # for each of the overlaps
-    for (split in splitMethod) { # for each of the split methods 
+    for (splitt in splitMethod) { # for each of the split methods (use tt so not a base R function)
       # Define the correct subdirectory path using Experiment path, window, and overlap
-      file_path <- file.path(Experiment_path, paste0(window_length, "_sec_window"), paste0(overlap_percent, "%_overlap"), 'Processed_Data.csv')
+      file_path <- file.path(Experiment_path, paste0(window_length, "_sec_window"), paste0(overlap_percent, "%_overlap"))
       print(file_path)
-      split_condition(file_path, modelArchitecture, threshold, split, trainingPercentage)
+      split_condition(file_path, modelArchitecture, threshold, splitt, trainingPercentage)
     }
   }
 }

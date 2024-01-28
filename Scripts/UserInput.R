@@ -49,7 +49,7 @@ modelArchitecture <- "RF"
 
 # Sampling Threshold, run the below code to visualise the dataset and choose a threshold
 ####### THIS IS GOING TO HAVE TO BE AUTO, OR A PROMPT SCREEN??? # FIX
-threshold <- 800
+threshold <- 100
 
 #### CAN TRIAL MULTIPLE PER RUN ####
 
@@ -58,10 +58,10 @@ data_presentations <- c(10)
 ntree <- 40
 
 # Window length, in seconds
-window <- c(0.5, 1, 2)
+window <- c(0.5, 1)
 
 # Window overlap, as a % # if <0, is overlapping
 overlap <- c(0)
 
 # Training Testing split method (choose from: random, chronological, LOIO)
-splitMethod <- c("random")
+splitMethod <- c("chronological")

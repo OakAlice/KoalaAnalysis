@@ -82,6 +82,7 @@ compute_features <- function(window_chunk, featuresList) {
   }
   
   result$activity <- names(which.max(table(window_chunk$activity)))
+  result$time <- window_chunk$time[1]
   result$ID <- window_chunk$ID[1]
   
   return(result)
