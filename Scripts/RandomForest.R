@@ -65,10 +65,15 @@ save_rf_model <- function(rf_model, metrics_df){
   
   # Extract OOB error estimate
   oob_error <- rf_model$err.rate[ntree, "OOB"]
-
+  
+  accuracy <- metrics_df$accuracy[1]
+  precision <- mean(metrics_df$precision, na.rm = TRUE)
+  recall <- mean(metrics_df$recall, na.rm = TRUE)
+  specificity <- metrics_df$specificity[1]
+  F1 <- mean(metrics_df$F1, na.rm = TRUE)
   
   summary_df <- data.frame(ExperimentNumber, desired_Hz, numBehaviours = length(selectedBehaviours),
-                           window_length, overlap_percent, numFeatures = length(featuresList), split, ntree,
+                           Model = "RF", window_length, overlap_percent, numFeatures = length(featuresList), split, ntree,
                            num_variables_split, oob_error, accuracy, recall = mean(recall, na.rm = TRUE), 
                            precision = mean(precision, na.rm = TRUE), specificity = mean(specificity), 
                            F1 = mean(F1, na.rm = TRUE), oob_error)

@@ -78,14 +78,13 @@ if ("RF" %in% modelArchitecture){
           
           # test the model
           metrics_df <- evaluate_rf_model(test_predictions, tstDat)
-          write.csv(metrics_df, file.path(Experiment_path, paste0(window_length, "_sec_window"), 
-                    paste0(overlap_percent, "%_overlap"), split, "RF", paste0(trees, "_param")))
           
           # reformat and save outcomes to the respective folders
-          #summary_df <- save_rf_model(rf_model, metrics_df)
+          summary_df <- save_rf_model(rf_model, metrics_df)
           
-          #write_csv(summary_df, file.path(Experiment_path, paste0(window_length, "_sec_window"), 
-                      #paste0(overlap_percent, "%_overlap"), split, "RF", paste0(tree, "_param")))
+          write.csv(summary_df, file.path(Experiment_path, paste0(window_length, "_sec_window"), 
+                    paste0(overlap_percent, "%_overlap"), split, "RF", paste0(trees, "_param"), 'Summary.csv'))
+          
         }
       }
     }
