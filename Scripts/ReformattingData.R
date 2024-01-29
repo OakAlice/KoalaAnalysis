@@ -38,8 +38,8 @@ format_movement_data <- function(MovementData, columnSubset, test_individuals = 
   }
   
   # save the output
-  write.csv(MoveData, paste0(output_dir, '/Formatted_MoveData.csv'))
+  #write.csv(MoveData, paste0(output_dir, '/Formatted_MoveData.csv'))
   
-  # Optionally, return the data
+  # return the data
   return(MoveData)
 }

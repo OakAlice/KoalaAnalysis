@@ -2,7 +2,7 @@
 
 # PART ONE: Training
 # select the predictors and the target, train with variable ntree number
-train_rf_model <- function(trDat, ntree) {
+train_rf_model <- function(trDat, trees) {
 
   predictors <- trDat %>% 
     ungroup() %>%
@@ -11,7 +11,7 @@ train_rf_model <- function(trDat, ntree) {
   
   target <- factor(trDat$activity)
   
-  rf_model <- randomForest(x = predictors, y = target, ntree = ntree, importance = TRUE)
+  rf_model <- randomForest(x = predictors, y = target, ntree = trees, importance = TRUE)
   return(rf_model)
 }
 
@@ -58,25 +58,44 @@ evaluate_rf_model <- function(test_predictions, tstDat) {
   return(metrics_df)
 }
 
-save_rf_model <- function(rf_model, metrics_df){
-
-  # Extract the number of variables tried at each split
+save_rf_model <- function(
+    rf_model, metrics_df, ExperimentNumber, test_individuals, 
+    desired_Hz, selectedBehaviours, featuresList, threshold, window_length, 
+    overlap_percent, split, trees
+) {
+  # Extract model metrics
   num_variables_split <- rf_model$mtry
-  
-  # Extract OOB error estimate
-  oob_error <- rf_model$err.rate[ntree, "OOB"]
-  
+  oob_error <- rf_model$err.rate[which.max(rf_model$err.rate[, "OOB"]), "OOB"]
   accuracy <- metrics_df$accuracy[1]
   precision <- mean(metrics_df$precision, na.rm = TRUE)
   recall <- mean(metrics_df$recall, na.rm = TRUE)
   specificity <- metrics_df$specificity[1]
   F1 <- mean(metrics_df$F1, na.rm = TRUE)
   
-  summary_df <- data.frame(ExperimentNumber, desired_Hz, numBehaviours = length(selectedBehaviours),
-                           Model = "RF", window_length, overlap_percent, numFeatures = length(featuresList), split, ntree,
-                           num_variables_split, oob_error, accuracy, recall = mean(recall, na.rm = TRUE), 
-                           precision = mean(precision, na.rm = TRUE), specificity = mean(specificity), 
-                           F1 = mean(F1, na.rm = TRUE), oob_error)
+  # Create summary dataframe
+  summary_df <- data.frame(
+    # experiment variables
+    ExperimentNumber = ExperimentNumber, 
+    TestIndividuals = test_individuals, 
+    DesiredHz = desired_Hz,
+    numBehaviours = length(selectedBehaviours),
+    NumFeatures = length(featuresList),
+    Balancing = threshold, 
+    WindowLength = window_length, 
+    OverlapPercent = overlap_percent, 
+    SplitMethod = split,
+    # model variables
+    ntree = trees, 
+    NumVariablesSplit = num_variables_split, 
+    # performance variables
+    OOBEstimate = oob_error, 
+    Accuracy = accuracy, 
+    Recall = recall, 
+    Precision = precision, 
+    Specificity = specificity, 
+    F1Score = F1
+  )
+  
   
   return(summary_df)
 }

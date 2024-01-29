@@ -4,7 +4,7 @@
 #### ONE VARIABLE / SET PER RUN ####
 
 # Experiment Number # so all the results go into different folders and don't write over
-ExperimentNumber <- 1
+ExperimentNumber <- 3
 
 # directory where everything is to be saved
 save_directory <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Redo"
@@ -39,12 +39,11 @@ featuresList <- c("mean", "max", "min", "sd", "cor", "SMA", "minODBA", "maxODBA"
 
 # Proportion of training data, as a decimal percentage (for chronological and random only)
 trainingPercentage <- 0.4
-validationPercentage <- 0.2
+#validationPercentage <- 0.2
 # testingPercentage is the remainder
 
-
 # Training Testing split method (choose from: random, chronological, LOIO)
-splitMethod <- c("chronological")
+splitMethod <- c("chronological", "random")
 
 # Model architecture, RF or SOM
 modelArchitecture <- "RF"
@@ -56,11 +55,11 @@ threshold <- 300
 #### CAN TRIAL MULTIPLE PER RUN ####
 
 # hyperparamters ### need to make this with multiple versions
-data_presentations <- c(40)
-ntree <- c(40)
+#data_presentations <- c(100, 200) # for the SOM
+ntree_list <- c(2, 3, 4, 5, 6, 7, 8, 9, 10) # for RF
 
 # Window length, in seconds
-window <- c(0.5, 1)
+window <- c(0.1, 0.5, 1, 2)
 
 # Window overlap, as a decimal percentage # if <0, is overlapping
-overlap <- c(0)
+overlap <- c(0, 50)

@@ -89,7 +89,11 @@ if ("RF" %in% modelArchitecture){
       }
     }
   }
-} else if ("SOM" %in% modelArchitecture) {
+  
+  
+#### SOM UNDER HERE  
+  
+#else if ("SOM" %in% modelArchitecture) {
   
   # Self-organising map
   for (window_length in window) { # for each of the windows
