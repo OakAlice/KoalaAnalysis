@@ -56,7 +56,7 @@ split_condition <- function(processed_data, modelArchitecture, threshold, split,
         }
         
         split_lists <- id_behavior_split %>% 
-          group_split(ID, activity) %>%
+          group_by(ID, activity, .add = TRUE) %>% group_split() %>%
           map(slice_data)
         
         trDat <- bind_rows(map(split_lists, "training")) %>% remove_columns()

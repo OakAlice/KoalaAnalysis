@@ -12,8 +12,10 @@ format_movement_data <- function(MovementData, columnSubset, test_individuals = 
   }
   
   # format time
-  # relevant only to fractional matlab days. Comment out otherwise
-  MoveData$time <- as.POSIXct((MoveData$time - 719529) * 86400, origin = "1970-01-01", tz = "UTC")
+  # relevant only to fractional matlab days
+  if (timeFormat == "matlab"){
+    MoveData$time <- as.POSIXct((MoveData$time - 719529) * 86400, origin = "1970-01-01", tz = "UTC")
+  }
   
   # potentially downsample the data
   if (!is.null(desired_Hz) && !is.null(current_Hz)) {

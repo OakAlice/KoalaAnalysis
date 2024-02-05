@@ -29,9 +29,10 @@ predict_rf_model <- function(rf_model, tstDat) {
 }
 
 # PART THREE: EVALUATE RESULTS
-# do the test, and extract the results
+# do the test, and extract the results for the overall performance as well as the target behaviours
+# target behaviours set to NULL as default
 
-evaluate_rf_model <- function(test_predictions, tstDat) {
+evaluate_rf_model <- function(test_predictions, tstDat, targetBehaviours = NULL) {
   test_actual <- factor(tstDat$activity)
   unique_classes <- union(levels(test_actual), levels(test_predictions))
   
@@ -39,63 +40,98 @@ evaluate_rf_model <- function(test_predictions, tstDat) {
                             factor(test_predictions, levels = unique_classes))
   
   accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+  
   recall <- diag(confusion_matrix) / rowSums(confusion_matrix)
   precision <- diag(confusion_matrix) / colSums(confusion_matrix)
-  # Calculate specificity
+  
+  # Calculate specificity for all classes
   num_classes <- ncol(confusion_matrix)
-  specificity <- numeric(num_classes)
+  specificity_all <- numeric(num_classes)
   for (i in 1:num_classes) {
     TN <- sum(confusion_matrix) - sum(confusion_matrix[i, ]) - sum(confusion_matrix[, i]) + confusion_matrix[i, i]
     FP <- sum(confusion_matrix[, i]) - confusion_matrix[i, i]
-    specificity[i] <- TN / (TN + FP)
+    specificity_all[i] <- TN / (TN + FP)
   }
-  specificity <- mean(specificity)
+  specificity <- mean(specificity_all)
   
   F1 <- ifelse((precision + recall) > 0, 2 * (precision * recall) / (precision + recall), 0)
   
-  metrics_df <- data.frame(accuracy, recall, precision, specificity, F1)
+  metrics <- data.frame(General_accuracy = accuracy, Mean_recall = mean(recall), Mean_precision = mean(precision), General_specificity = specificity, Mean_F1 = mean(F1))
   
-  return(metrics_df)
+  # If targetBehaviours are specified, calculate metrics for them
+  if (!is.null(targetBehaviours)) {
+    for (behaviour in targetBehaviours) {
+      behaviour_index <- which(unique_classes == behaviour)
+      if (length(behaviour_index) > 0) {
+        TP <- confusion_matrix[behaviour_index, behaviour_index]
+        FN <- sum(confusion_matrix[behaviour_index, ]) - TP
+        FP <- sum(confusion_matrix[, behaviour_index]) - TP
+        TN <- sum(confusion_matrix) - TP - FP - FN
+        behaviour_accuracy <- (TP + TN) / (TP + TN + FP + FN)
+        behaviour_recall <- TP / (TP + FN)
+        behaviour_precision <- TP / (TP + FP)
+        behaviour_F1 <- 2 * (behaviour_precision * behaviour_recall) / (behaviour_precision + behaviour_recall)
+        
+        metrics[[paste(behaviour, "accuracy", sep = "_")]] <- behaviour_accuracy
+        metrics[[paste(behaviour, "recall", sep = "_")]] <- behaviour_recall
+        metrics[[paste(behaviour, "precision", sep = "_")]] <- behaviour_precision
+        metrics[[paste(behaviour, "F1", sep = "_")]] <- behaviour_F1
+      }
+    }
+  }
+  
+  return(metrics)
 }
 
+# PART FOUR: SAVE ALL THE RESULTS
 save_rf_model <- function(
     rf_model, metrics_df, ExperimentNumber, test_individuals, 
     desired_Hz, selectedBehaviours, featuresList, threshold, window_length, 
-    overlap_percent, split, trees
+    overlap_percent, split, trees, summary_file_path
 ) {
   # Extract model metrics
   num_variables_split <- rf_model$mtry
-  oob_error <- rf_model$err.rate[which.max(rf_model$err.rate[, "OOB"]), "OOB"]
-  accuracy <- metrics_df$accuracy[1]
-  precision <- mean(metrics_df$precision, na.rm = TRUE)
-  recall <- mean(metrics_df$recall, na.rm = TRUE)
-  specificity <- metrics_df$specificity[1]
-  F1 <- mean(metrics_df$F1, na.rm = TRUE)
+  oob_error <- as.numeric(rf_model$err.rate[which.max(rf_model$err.rate[, "OOB"]), "OOB"])
   
-  # Create summary dataframe
-  summary_df <- data.frame(
-    # experiment variables
-    ExperimentNumber = ExperimentNumber, 
-    TestIndividuals = test_individuals, 
-    DesiredHz = desired_Hz,
-    numBehaviours = length(selectedBehaviours),
-    NumFeatures = length(featuresList),
-    Balancing = threshold, 
-    WindowLength = window_length, 
-    OverlapPercent = overlap_percent, 
-    SplitMethod = split,
-    # model variables
-    ntree = trees, 
-    NumVariablesSplit = num_variables_split, 
-    # performance variables
-    OOBEstimate = oob_error, 
-    Accuracy = accuracy, 
-    Recall = recall, 
-    Precision = precision, 
-    Specificity = specificity, 
-    F1Score = F1
+  # Prepare static part of the summary
+  static_metrics <- list(
+    ExperimentNumber = as.numeric(ExperimentNumber),
+    TestIndividuals = as.numeric(test_individuals),
+    DesiredHz = as.numeric(desired_Hz),
+    numBehaviours = as.numeric(length(selectedBehaviours)),
+    NumFeatures = as.numeric(length(featuresList)),
+    Balancing = as.numeric(threshold),
+    WindowLength = as.numeric(window_length),
+    OverlapPercent = as.numeric(overlap_percent),
+    SplitMethod = as.character(split),
+    ntree = as.numeric(trees),
+    NumVariablesSplit = as.numeric(num_variables_split),
+    OOBEstimate = oob_error
   )
   
+  # Ensure dynamic metrics are coerced to numeric where possible, else character
+  dynamic_metrics <- lapply(metrics_df[1, ], function(x) {
+    numeric_x <- suppressWarnings(as.numeric(x))
+    if(any(!is.na(numeric_x))) {
+      return(numeric_x)
+    } else {
+      # Return NA if conversion to numeric fails
+      return(NA)
+    }
+  })
+
+  # Combine static and dynamic metrics
+  final_metrics_list <- c(static_metrics, dynamic_metrics) 
+  
+  # Convert the combined list to a dataframe ensuring no list-type columns
+  summary_df <- setNames(data.frame(matrix(unlist(final_metrics_list), nrow=1, byrow=TRUE), stringsAsFactors=FALSE), names(final_metrics_list))
+  
+  # Write to file, handling headers appropriately
+  if(!file.exists(summary_file_path)) {
+    write.csv(summary_df, summary_file_path, row.names = FALSE)
+  } else {
+    write.table(summary_df, file = summary_file_path, sep = ",", row.names = FALSE, col.names = FALSE, append = TRUE, quote = FALSE)
+  }
   
   return(summary_df)
 }
