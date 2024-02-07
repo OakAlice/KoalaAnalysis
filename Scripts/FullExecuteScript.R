@@ -2,8 +2,7 @@
 # doesn't print each of the stages, just saves the output to an appended csv
 
 library(pacman)
-p_load(dplyr, tidyverse, randomForest, caret, e1071)
-  # kohonen, data.table, lattice, glue, moments, fs, grid, png, reshape2, e1071)
+p_load(dplyr, tidyverse, randomForest, caret, e1071, kohonen, cluster, purrr)
 
 setwd("C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Scripts") # scripts location
 
@@ -13,6 +12,7 @@ source("ReformattingData.R")
 source("GeneralFunctions.R")
 source("FeatureProcessing.R")
 source("SplitData.R")
+source("Clustering.R")
 source("RandomForest.R")
 
 # make the experiment directory
@@ -50,9 +50,9 @@ for (window_length in window) {
             desired_Hz, selectedBehaviours, featuresList, threshold, window_length, 
             overlap_percent, split, trees, summary_file_path
           )
-          
         }
       }
     }
   }
 #}
+

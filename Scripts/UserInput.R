@@ -37,7 +37,7 @@ source("ColumnSubsetLists.R")
   selectedBehaviours <- VerkhojaDogsBehaviours
   
   # target behaviours
-  targetBehaviours <- c("Eating", "Galloping", "Standing")
+  targetBehaviours <- c("Walking", "Trotting")
 
 
 ## PREPROCESSING ####
@@ -74,9 +74,9 @@ source("ColumnSubsetLists.R")
   
   # Sampling Threshold, run the below code to visualise the dataset and choose a threshold
   ####### THIS IS GOING TO HAVE TO BE AUTO, OR A PROMPT SCREEN??? # FIX
-  threshold <- 300
+  threshold <- 800
   
   # hyperparamters ### need to make this with multiple versions
   #data_presentations <- c(100, 200) # for the SOM
-  ntree_list <- c(2, 5, 10) # for RF
+  ntree_list <- c(2, 5, 10, 15, 20) # for RF
 

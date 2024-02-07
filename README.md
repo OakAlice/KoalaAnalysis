@@ -13,12 +13,14 @@ This script can be used to produce a RF from any raw accelerometry data. You can
 ## Preprocessing
 - ReformattingData.R -> Reformat the data based on the user variables
 - GeneralFunctions.R -> Other stuff needed elsewhere
-- GeneratingFeatures.R -> Creating the features across all the data
+- GeneratingFeatures.R -> Creating the features across all the data # TODO: add normalising and filtering
 - SplitData.R -> Split into the training, validation, and testing sets # TODO: make 3 way split
 
+## Assess validity of behaviour labels
+- SOMClusters.R -> Use an unsupervised SOM to cluster the training data - calculate normalised mutual information to find optimal clusters # note, this literally is so bad. Don't know if code wrong or idea wrong
+
 ## Model Application and Validation
-- RandomForest.R -> Apply Random forest training and validation # currently very basic # add hyperparameter tuning and store results
-- Results.R -> Display the results from all the test variations # not started
+- RandomForest.R -> Apply Random forest training and validation # currently very basic, add more hyperparameter tuning
 
 ## Plots
 - Plot.R -> Plot the behaviours across time # not started

@@ -29,7 +29,7 @@ balance_data <- function(dat, threshold) {
 split_condition <- function(processed_data, modelArchitecture, threshold, split, trainingPercentage, window_length, overlap_percent, test_individuals = NULL) {
   
   dat <- processed_data %>% na.omit()
-  #dat <- balance_data(dat, threshold) # balancing currently not working
+  dat <- balance_data(dat, threshold) # balancing currently not working
   
   remove_columns <- function(df) {
     df %>% select(-any_of(c("time", "n", "X", "over_threshold")))
@@ -57,10 +57,10 @@ split_condition <- function(processed_data, modelArchitecture, threshold, split,
         
         split_lists <- id_behavior_split %>% 
           group_by(ID, activity, .add = TRUE) %>% group_split() %>%
-          map(slice_data)
+          purrr::map(slice_data)
         
-        trDat <- bind_rows(map(split_lists, "training")) %>% remove_columns()
-        tstDat <- bind_rows(map(split_lists, "testing")) %>% remove_columns()
+        trDat <- bind_rows(purrr::map(split_lists, "training")) %>% remove_columns()
+        tstDat <- bind_rows(purrr::map(split_lists, "testing")) %>% remove_columns()
         
       } else {
         dat <- dat %>% arrange(time)
