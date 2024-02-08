@@ -26,64 +26,109 @@ balance_data <- function(dat, threshold) {
 }
 
 # process the data
-split_condition <- function(processed_data, modelArchitecture, threshold, split, trainingPercentage, window_length, overlap_percent, test_individuals = NULL) {
+split_condition <- function(processed_data, modelArchitecture, threshold, split, 
+                            trainingPercentage, validationPercentage, test_individuals) {
   
   dat <- processed_data %>% na.omit()
-  dat <- balance_data(dat, threshold) # balancing currently not working
+  dat <- balance_data(dat, threshold) # balancing currently bad
   
   remove_columns <- function(df) {
-    df %>% select(-any_of(c("time", "n", "X", "over_threshold")))
+    df %>% select(-any_of(c("time", "n", "X", "over_threshold", "ID")))
   }
   
+  testingPercentage <- 1- trainingPercentage - validationPercentage
+  prop <- c(trainingPercentage, validationPercentage, testingPercentage)  # Proportions for each group
+  
   if (split == "random") {
-    index <- dat %>% 
-      group_by(activity) %>%
-      sample_frac(trainingPercentage)
+    # set up valiables
+    n <- nrow(dat)
     
-    trDat <- remove_columns(index)
-    tstDat <- remove_columns(anti_join(dat, trDat))
+    # Generate random indices
+    indices <- sample(1:3, n, replace = TRUE, prob = prop)
+    
+    # Split data based on indices
+    trDat <- dat[indices == 1, ]
+    valDat <- dat[indices == 2, ]
+    tstDat <- dat[indices == 3, ]
+    
+    trDat <- remove_columns(trDat)
+    valDat <- remove_columns(valDat)
+    tstDat <- remove_columns(tstDat)
     
   } else if (split == "chronological") {
-      if ("ID" %in% colnames(dat)) {
-        id_behavior_split <- dat %>%
-          group_by(ID, activity) %>%
-          mutate(split_index = floor(trainingPercentage * n()))
+    if ("ID" %in% colnames(dat)) { 
+        # sort by ID and time
+      sorted_dat <- arrange(dat, ID, time)
+      # Get unique individuals
+      individuals <- unique(sorted_dat$ID)
+      
+      # blank dataframes
+      trDat <- data.frame()
+      valDat <- data.frame()
+      tstDat <- data.frame()
+      
+      # for each of the individuals, select the individual's data
+      for (i in 1:length(individuals)) {
+        ind_data <- sorted_dat[sorted_dat$ID == individuals[i], ]
         
-        # Define a function to slice data based on split_index
-        slice_data <- function(df) {
-          split_point <- unique(df$split_index[1])
-          list(training = df[1:split_point, ], testing = df[(split_point + 1):nrow(df), ])
-        }
+        # given the total rows for that individual
+        n_ind <- nrow(ind_data)
+        # Calculate rows per proportion
+        ind_sample_sizes <- floor(prop * n_ind)
         
-        split_lists <- id_behavior_split %>% 
-          group_by(ID, activity, .add = TRUE) %>% group_split() %>%
-          purrr::map(slice_data)
+        ind_trDat <- ind_data[0:ind_sample_sizes[1], ] # the first proportion
+        ind_valDat <- ind_data[ind_sample_sizes[1] : (ind_sample_sizes[1] +ind_sample_sizes[2]), ] # middle prop
+        ind_tstDat <- ind_data[(n_ind - ind_sample_sizes[3]):n_ind, ] # remainder prop
         
-        trDat <- bind_rows(purrr::map(split_lists, "training")) %>% remove_columns()
-        tstDat <- bind_rows(purrr::map(split_lists, "testing")) %>% remove_columns()
-        
-      } else {
-        dat <- dat %>% arrange(time)
-        num_rows_to_sample <- floor(nrow(dat) * trainingPercentage)
-        
-        print(nrow(dat))
-        num_rows_to_sample
-        
-        trDat <- dat[1:num_rows_to_sample, ] %>% remove_columns()
-        tstDat <- anti_join(dat, trDat) %>% remove_columns()
+        trDat <- rbind(ind_trDat, trDat)
+        valDat <- rbind(ind_valDat, valDat)
+        tstDat <- rbind(ind_tstDat, tstDat)
       }
       
+      trDat <- remove_columns(trDat)
+      valDat <- remove_columns(valDat)
+      tstDat <- remove_columns(tstDat)
+    
+      } else { # when there is no ID
+        dat <- dat %>% arrange(time)
+        sample_sizes <- floor(nrow(dat) * prop)
+        
+        trDat <- dat[0:sample_sizes[1], ] %>% remove_columns() 
+        valDat <- dat[sample_sizes[1] : (sample_sizes[1] +sample_sizes[2]), ]%>% remove_columns()
+        tstDat <- dat[(length(dat$ID) - sample_sizes[3]):length(dat$ID), ]%>% remove_columns()
+      }
+    
   } else if (split == "LOIO") {
     # Ensure test_individuals is provided for LOIO split
     if (is.null(test_individuals)) {
       stop("test_individuals must be provided for LOIO split")
+    } else if (test_individuals<3){
+      stop("test_individuals must be greater than 3 for this condition")
     }
     
-    number_leave_out <- ceiling((1 - trainingPercentage) * test_individuals)
-    selected_individual <- sample(unique(dat$ID), number_leave_out)
+    # calculating  number of individuals in labelled sets # must be whole number, cant be 0, must add to total
+    # Calculate the approximate 
+    approx_individuals <- ceiling(test_individuals * prop)
     
-    tstDat <- dat %>% filter(ID %in% selected_individual) %>% remove_columns()
-    trDat <- dat %>% filter(!(ID %in% selected_individual)) %>% remove_columns()
+    # Adjust any rounded 0s to be 1 - minimum necessary
+    approx_individuals[approx_individuals == 0] <- 1
+    
+    # Adjust the largest group to meet logical conditions
+    largest <- which.max(approx_individuals)
+    approx_individuals[largest] <- ifelse(sum(approx_individuals) != test_individuals,
+                                   approx_individuals[3] + (test_individuals - sum(approx_individuals)),
+                                   approx_individuals)
+    
+    # select which of the individuals will be in each group
+    individuals <- unique(dat$ID)
+    trainingIndividuals <- sample(individuals, size = approx_individuals[1])
+    remaining_individuals <- setdiff(individuals, trainingIndividuals)
+    validationIndividuals <- sample(remaining_individuals, size = approx_individuals[2])
+    
+    # save these as data groups
+    trDat <- dat %>% filter(ID %in% trainingIndividuals) %>% remove_columns()
+    valDat <- dat %>% filter(ID %in% validationIndividuals) %>% remove_columns()
+    tstDat <- dat %>% filter(!(ID %in% trainingIndividuals | ID %in% validationIndividuals)) %>% remove_columns()
   }
   
   # Formatting the data for the SOM

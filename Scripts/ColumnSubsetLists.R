@@ -10,3 +10,7 @@ WilsonKoalaColumns <- c("Time" = "time",
                         "X" = "X_accel", "Y" = "Y_accel", "Z" = "Z_accel",
                         "GX" = "X_gyro", "GY" = "Y_gyro", "GZ" = "Z_gyro",
                         "Activity" = "activity")
+
+JordanPerentieColumns <- c("Time" = "time", 
+                        "X" = "X_accel", "Y" = "Y_accel", "Z" = "Z_accel",
+                        "ID" = "ID", "activity" = "activity")

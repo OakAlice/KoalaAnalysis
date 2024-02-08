@@ -1,5 +1,5 @@
 ## Execute Script 2 continuous version ##
-# doesn't print each of the stages, just saves the output to an appended csv
+# saves the output of each experiment to an appended csv and then runs the optimal settings in a new model
 
 library(pacman)
 p_load(dplyr, tidyverse, randomForest, caret, e1071, kohonen, cluster, purrr)
@@ -12,8 +12,9 @@ source("ReformattingData.R")
 source("GeneralFunctions.R")
 source("FeatureProcessing.R")
 source("SplitData.R")
-source("Clustering.R")
+#source("Clustering.R")
 source("RandomForest.R")
+source("OptimalModelRun.R")
 
 # make the experiment directory
 Experiment_path <- paste0(save_directory, "/Experiment_", ExperimentNumber)
@@ -34,16 +35,17 @@ for (window_length in window) {
     
     for (split in splitMethod) {
       # Split data
-      list_train_test <- split_condition(processed_data, modelArchitecture, threshold, split, trainingPercentage)
-      trDat <- list_train_test$train
-      tstDat <- list_train_test$test
+      list_train_test <- split_condition(processed_data, modelArchitecture, threshold, split, trainingPercentage, validationPercentage, test_individuals)
+      trDat <- na.omit(list_train_test$train)\
+      valDat <- na.omit(list_train_test$validation)
+      tstDat <- na.omit(list_train_test$test)
       
       #if ("RF" %in% modelArchitecture) {
         for (trees in ntree_list) {
           # Train and Test Random Forest Model
           rf_model <- train_rf_model(trDat, trees)
-          test_predictions <- predict_rf_model(rf_model, tstDat)
-          metrics_df <- evaluate_rf_model(test_predictions, tstDat, targetBehaviours)
+          test_predictions <- predict_rf_model(rf_model, valDat)
+          metrics_df <- evaluate_rf_model(test_predictions, valDat, targetBehaviours)
           
           summary_df <- save_rf_model(
             rf_model, metrics_df, ExperimentNumber, test_individuals, 
@@ -56,3 +58,15 @@ for (window_length in window) {
   }
 #}
 
+# select the optimal hyperparamters from the csv and create the model
+optimal_window <- 2
+optimal_overlap <- 0
+optimal_split <- "LOIO"
+optimal_ntree <- 50
+optimal_threshold <- 400
+
+listreturns <- perform_optimal_model(formatted_data, featuresList, optimal_window, optimal_overlap, 
+                      optimal_threshold, optimal_split, trainingPercentage, validationPercentage, optimal_ntree, test_individuals)
+
+print(listreturns$plot)
+listreturns$confusion

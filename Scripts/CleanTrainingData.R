@@ -1,24 +1,74 @@
 # Cleaning the training data
-# Mine is weird, like out of column wack, so have to fix that
-# and then want to convert the matlab time to real time
-# and then quantify how much we have of each behaviour
+# for turning MatLab into csv. Not an automated flow. Alter this code to use needs.
 
-install.packages("pacman")
+#install.packages("pacman")
 library(pacman)
 p_load("dplyr", "tidyverse", "utils")
 
-# Specify the input and output directories
-input_dir <- "C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Data/TrainingData"
-output_path <- "C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Data/TrainingData.csv"
-activity_key <- "C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Data/ActivityKey.csv"
+# originally written for Perentie Jordan data ####
+txt_to_csv_append <- function(input_dir, output_file) {
+  file_paths <- list.files(input_dir, pattern = "\\.txt$", full.names = TRUE)
+  
+  all_training_data <- list()
+  
+  for (file_path in file_paths) {
+    # Extract ID from filename
+    file_name <- basename(file_path)
+    ID <- sub(".*_([^.]+)\\.txt$", "\\1", file_name)
+    
+    # Read the TXT file
+    training_data <- read_tsv(file_path, col_types = cols(
+      Time = col_double(),
+      X = col_double(),
+      Y = col_double(),
+      Z = col_double(),
+      Number = col_double()
+    ), col_names = c("Time", "X", "Y", "Z", "Number"))
+    
+    # Add the ID column
+    training_data$ID <- ID
+    
+    # Append to the list
+    all_training_data[[length(all_training_data) + 1]] <- training_data
+  }
+  
+  # Combine all DataFrames in the list into one
+  combined_data <- bind_rows(all_training_data)
+  
+  # Load activity key and merge with combined data
+  activity_key <- read_csv(activity_key_path)
+  labelled_data <- left_join(combined_data, activity_key, by = "Number")
+  
+  # Remove the Number column
+  labelled_data <- select(labelled_data, -Number)
+  
+  # Write the combined and labelled data to a CSV file
+  write_csv(labelled_data, output_file)
+}
+
+# Paths
+input_dir <- "C:/Users/oakle/Documents/PhD docs/Perentie/Training Data"
+output_path <- "C:/Users/oakle/Documents/PhD docs/Perentie/TrainingData.csv"
+activity_key_path <- "C:/Users/oakle/Documents/PhD docs/Perentie/ActivityKey.csv"
+
+# Run the function
+txt_to_csv_append(input_dir, output_path)
+
+
+
+
+
+
+# Niche stuff for my koala data ####
 
 # Create the output file and write the header
 write_csv(tibble(Time = numeric(), X = numeric(), Y = numeric(), Z = numeric(),
-                 GX = numeric(), GY = numeric(), GZ = numeric(), Number = numeric()), 
+                 #GX = numeric(), GY = numeric(), GZ = numeric(), 
+                 Activity = numeric(), ID = character()), 
           output_path, col_names = TRUE)
 
-# Function to reformat and append data to the output file
-reformat_and_append_data <- function(file_path, output_file_path) {
+# Function to reformat and append data to the output file # this is specific to just my koala data
+reformat_oak_koala <- function(file_path, output_file_path) {
   # Read the data and split into individual values
   all_values <- read_lines(file_path) %>%
     str_split("\\s+", simplify = FALSE) %>%
@@ -36,19 +86,3 @@ reformat_and_append_data <- function(file_path, output_file_path) {
   write_csv(as_tibble(reshaped_data), output_file_path, append = TRUE, col_names = FALSE)
 }
 
-# Get all file paths in the input directory
-file_paths <- list.files(input_dir, full.names = TRUE)
-
-# Apply the function to each file using a for loop
-for (file_path in file_paths) {
-  reformat_and_append_data(file_path, output_path)
-}
-
-# Now replace the activity number with the activity name
-# read in the activity key
-activity_key <- read.csv(activity_key)
-labelled_data <- read.csv(output_path)
-labelled_data <- merge(labelled_data, activity_key, by = "Number")
-labelled_data <- subset(labelled_data, select = -c(Number))
-
-write_csv(labelled_data, "C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Data/TrainingData2.csv")

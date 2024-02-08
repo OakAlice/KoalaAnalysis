@@ -10,3 +10,6 @@ WilsonKoalasBehaviours <- c("Climb_1", "Climb_2", "Climb_3", "Climb_4",
                             "Tree_movement", "Tree_still", 
                             "Walking_1", "Walking_2", "Walking_3", "Walking_4", 
                             "Ground_Movement", "Ground_Still")
+
+JordanPerentieBehaviours <- c("resting", "walking", "sleeping", "climbing",
+                              "climbing_down", "running", "defensive", "eating", "accel_hit")

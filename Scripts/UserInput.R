@@ -3,22 +3,22 @@
 
 source("BehavioursLists.R")
 source("ColumnSubsetLists.R")
+source("CsvLocationLists.R")
 
 ## SET UP ####
   # Experiment Number # for keeping track of your work
-  ExperimentNumber <- 4
+  ExperimentNumber <- 5
   
   # directory where everything is to be saved
   save_directory <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Redo"
   
   # The raw csv data
-  # MovementData <- "C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Data/TrainingData2.csv" # my koalas
-  MovementData <- "C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Data/DogMoveData.csv" # dogs
+  MovementData <- JordanPerentieData
 
 
 ## FORMATTING ####
   # if tagging by individuals # how many individuals to sample, set to NA if all
-  test_individuals <- 5
+  test_individuals <- 4
   
   # Desired sampling frequency, as Hz (potentially different from actual sampling frequency)
   current_Hz <- 50
@@ -27,17 +27,17 @@ source("ColumnSubsetLists.R")
   # tell me which of your columns represent the 
   # ID, Time, X_accel, Y_accel, Z_accel, X_gyro, Y_gyro, Z_gyro, and activity
   # create new list, or select from ColumnSubsetList
-  columnSubset <- VerkjojaDogsColumns
+  columnSubset <- JordanPerentieColumns
   
   # what format is the time in: matlab, other
-  timeFormat <- "other"
+  timeFormat <- "matlab"
   
   # select the behaviours to include in the analysis
   # enter new list, or select from BehavioursList
-  selectedBehaviours <- VerkhojaDogsBehaviours
+  selectedBehaviours <- JordanPerentieBehaviours
   
   # target behaviours
-  targetBehaviours <- c("Walking", "Trotting")
+  targetBehaviours <- c("walking", "running")
 
 
 ## PREPROCESSING ####
@@ -48,10 +48,10 @@ source("ColumnSubsetLists.R")
   Normalisation <- c(TRUE, FALSE)
   
   # Window length, in seconds
-  window <- c(0.5, 1)
+  window <- c(0.5, 1, 2)
   
   # Window overlap, as a decimal percentage # if <0, is overlapping
-  overlap <- c(0, 10)
+  overlap <- c(0, 10, 20)
   
   # Features to be calculated on every axis, select from following list: 
   # "mean", "max", "min", "sd", "sk", "cor", "SMA", "minODBA", "maxODBA", "minVDBA", "maxVDBA"
@@ -60,10 +60,10 @@ source("ColumnSubsetLists.R")
 
 ## VALIDATION ####
   # Training Testing split method (choose from: random, chronological, LOIO)
-  splitMethod <- c("chronological", "random")
+  splitMethod <- c("chronological", "random", "LOIO")
   
   # Proportion of training data, as a decimal percentage
-  trainingPercentage <- 0.4
+  trainingPercentage <- 0.2
   validationPercentage <- 0.2
   # testingPercentage is the remainder
 
@@ -74,9 +74,9 @@ source("ColumnSubsetLists.R")
   
   # Sampling Threshold, run the below code to visualise the dataset and choose a threshold
   ####### THIS IS GOING TO HAVE TO BE AUTO, OR A PROMPT SCREEN??? # FIX
-  threshold <- 800
+  threshold <- 400
   
   # hyperparamters ### need to make this with multiple versions
   #data_presentations <- c(100, 200) # for the SOM
-  ntree_list <- c(2, 5, 10, 15, 20) # for RF
+  ntree_list <- c(10, 15, 20, 25, 50, 100) # for RF
 

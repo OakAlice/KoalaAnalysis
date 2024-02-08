@@ -6,7 +6,7 @@ train_rf_model <- function(trDat, trees) {
 
   predictors <- trDat %>% 
     ungroup() %>%
-    select(-activity) %>%
+    select(-any_of(c("activity", "ID"))) %>%
     mutate(across(everything(), as.numeric))
   
   target <- factor(trDat$activity)
@@ -21,7 +21,7 @@ predict_rf_model <- function(rf_model, tstDat) {
 
   test_predictors <- tstDat %>%
     ungroup() %>%
-    select(-activity) %>%
+    select(-any_of(c("activity", "ID"))) %>%
     mutate(across(everything(), as.numeric))
   
   test_predictions <- predict(rf_model, test_predictors)
