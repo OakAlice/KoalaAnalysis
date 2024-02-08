@@ -17,9 +17,9 @@ train_rf_model <- function(trDat, trees) {
 
 # PART TWO: TESTING
 # prepare the test data in the same way and then extract the test data
-predict_rf_model <- function(rf_model, tstDat) {
+predict_rf_model <- function(rf_model, testingData) {
 
-  test_predictors <- tstDat %>%
+  test_predictors <- testingData %>%
     ungroup() %>%
     select(-any_of(c("activity", "ID"))) %>%
     mutate(across(everything(), as.numeric))

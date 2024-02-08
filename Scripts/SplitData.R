@@ -33,7 +33,7 @@ split_condition <- function(processed_data, modelArchitecture, threshold, split,
   dat <- balance_data(dat, threshold) # balancing currently bad
   
   remove_columns <- function(df) {
-    df %>% select(-any_of(c("time", "n", "X", "over_threshold", "ID")))
+    df %>% select(-any_of(c("time", "n", "X", "over_threshold")))
   }
   
   testingPercentage <- 1- trainingPercentage - validationPercentage
@@ -43,10 +43,10 @@ split_condition <- function(processed_data, modelArchitecture, threshold, split,
     # set up valiables
     n <- nrow(dat)
     
-    # Generate random indices
+    # Generate random indices for every row
     indices <- sample(1:3, n, replace = TRUE, prob = prop)
     
-    # Split data based on indices
+    # Split data based on those random indices
     trDat <- dat[indices == 1, ]
     valDat <- dat[indices == 2, ]
     tstDat <- dat[indices == 3, ]
@@ -144,7 +144,7 @@ split_condition <- function(processed_data, modelArchitecture, threshold, split,
     trDat <- trSamp2(trDat)
     tstDat <- trSamp2(tstDat)
     
-    return(list(train = trDat, test = tstDat))
+    return(list(train = trDat, validation = valDat, test = tstDat))
     
     #rda_extension <- ".rda"
     #save(trDat, file = file.path(file_path, splitt, paste0('TrainingData', rda_extension)))
@@ -155,6 +155,6 @@ split_condition <- function(processed_data, modelArchitecture, threshold, split,
     #write_csv(trDat, file.path(file_path, splitt, paste0('TrainingData', csv_extension)))
     #write_csv(tstDat, file.path(file_path, splitt, paste0('TestingData', csv_extension)))
     
-    return(list(train = trDat, test = tstDat))
+    return(list(train = trDat, validate = valDat, test = tstDat))
   }
 }

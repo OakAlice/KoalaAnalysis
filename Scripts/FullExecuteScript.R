@@ -36,8 +36,8 @@ for (window_length in window) {
     for (split in splitMethod) {
       # Split data
       list_train_test <- split_condition(processed_data, modelArchitecture, threshold, split, trainingPercentage, validationPercentage, test_individuals)
-      trDat <- na.omit(list_train_test$train)\
-      valDat <- na.omit(list_train_test$validation)
+      trDat <- na.omit(list_train_test$train)
+      valDat <- na.omit(list_train_test$validate)
       tstDat <- na.omit(list_train_test$test)
       
       #if ("RF" %in% modelArchitecture) {
@@ -65,8 +65,15 @@ optimal_split <- "LOIO"
 optimal_ntree <- 50
 optimal_threshold <- 400
 
-listreturns <- perform_optimal_model(formatted_data, featuresList, optimal_window, optimal_overlap, 
+trainReturns <- train_optimal_model(formatted_data, featuresList, optimal_window, optimal_overlap, 
                       optimal_threshold, optimal_split, trainingPercentage, validationPercentage, optimal_ntree, test_individuals)
 
-print(listreturns$plot)
-listreturns$confusion
+model <- trainReturns$model
+tstDat <- trainReturns$hold_out_data # tstDat that hasn't been used in the system yet
+
+testReturns <- test_optimal_model(model, tstDat)
+
+print(testReturns$plot)
+testReturns$confusion
+sum(diag(testReturns$confusion)) / sum(testReturns$confusion)
+

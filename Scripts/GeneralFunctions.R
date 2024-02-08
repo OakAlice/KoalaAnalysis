@@ -1,14 +1,14 @@
 ## General Page for functions not specifically for any task
 
 # Function to subset and rename columns to match the general format
-subset_and_rename <- function(df, column_map) {
+subset_and_rename <- function(df, columnSubset) {
   # Check if all columns in the mapping exist in the dataframe
-  if (all(names(column_map) %in% colnames(df))) {
+  if (all(names(columnSubset) %in% colnames(df))) {
     # Subset the dataframe
-    df <- df[, names(column_map)]
+    df <- df[, names(columnSubset)]
     
     # Rename the columns
-    colnames(df) <- column_map
+    colnames(df) <- columnSubset
     
     return(df)
   } else {

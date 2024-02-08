@@ -48,10 +48,10 @@ source("CsvLocationLists.R")
   Normalisation <- c(TRUE, FALSE)
   
   # Window length, in seconds
-  window <- c(0.5, 1, 2)
+  window <- c(0.5, 1)
   
   # Window overlap, as a decimal percentage # if <0, is overlapping
-  overlap <- c(0, 10, 20)
+  overlap <- c(0, 10)
   
   # Features to be calculated on every axis, select from following list: 
   # "mean", "max", "min", "sd", "sk", "cor", "SMA", "minODBA", "maxODBA", "minVDBA", "maxVDBA"
@@ -78,5 +78,5 @@ source("CsvLocationLists.R")
   
   # hyperparamters ### need to make this with multiple versions
   #data_presentations <- c(100, 200) # for the SOM
-  ntree_list <- c(10, 15, 20, 25, 50, 100) # for RF
+  ntree_list <- c(20, 50) # for RF
 
