@@ -59,11 +59,11 @@ for (window_length in window) {
 #}
 
 # select the optimal hyperparamters from the csv and create the model
-optimal_window <- 2
-optimal_overlap <- 0
-optimal_split <- "LOIO"
+optimal_window <- 1
+optimal_overlap <- 10
+optimal_split <- "chronological"
 optimal_ntree <- 50
-optimal_threshold <- 400
+optimal_threshold <- 40000
 
 trainReturns <- train_optimal_model(formatted_data, featuresList, optimal_window, optimal_overlap, 
                       optimal_threshold, optimal_split, trainingPercentage, validationPercentage, optimal_ntree, test_individuals)

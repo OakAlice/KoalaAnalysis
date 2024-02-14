@@ -13,3 +13,9 @@ WilsonKoalasBehaviours <- c("Climb_1", "Climb_2", "Climb_3", "Climb_4",
 
 JordanPerentieBehaviours <- c("resting", "walking", "sleeping", "climbing",
                               "climbing_down", "running", "defensive", "eating", "accel_hit")
+
+GabbyKoalaBehaviours <- c("Tree Sitting", "Sleeping/Resting", "Foraging/Eating",
+                          "Shake", "Grooming", "Bellowing", "Branch Walking",
+                          "Climbing Up", "Climbing Down", "Rapid Climbing", "Swinging/Hanging",
+                          "Tree Movement", "Walking", "Trot", "Gallop", "Bound/Half-Bound",
+                          "Ground Sitting")

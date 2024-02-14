@@ -1,36 +1,11 @@
 # Code to create the training and testing data, saving them both as .rda files
 
-# balance the data according to the above determined value
-balance_data <- function(dat, threshold) {
-  #dat <- processed_data
-  
-  # Determine counts of each 'activity' and identify over-represented behaviors
-  activity_counts <- dat %>% 
-    group_by(activity) %>%
-    tally() %>%
-    mutate(over_threshold = ifelse(n > threshold, threshold, n)) # Use the min of n and threshold
-  
-  # For over-represented behaviors, sample the desired threshold number of rows or all if less
-  oversampled_data <- dat %>% 
-    inner_join(activity_counts %>% filter(n > threshold), by = "activity") %>%
-    group_by(activity) %>%
-    sample_n(size = min(over_threshold[1], n()), replace = FALSE) 
-  
-  # For other behaviors, take all rows
-  undersampled_data <- dat %>% 
-    anti_join(filter(activity_counts, n > threshold), by = "activity")
-  
-  # Combine and return
-  balance_data <- bind_rows(oversampled_data, undersampled_data)
-  return(balance_data)
-}
-
 # process the data
 split_condition <- function(processed_data, modelArchitecture, threshold, split, 
                             trainingPercentage, validationPercentage, test_individuals) {
   
   dat <- processed_data %>% na.omit()
-  dat <- balance_data(dat, threshold) # balancing currently bad
+  #dat <- balance_data(dat, threshold) # balancing currently bad
   
   remove_columns <- function(df) {
     df %>% select(-any_of(c("time", "n", "X", "over_threshold")))
@@ -116,7 +91,7 @@ split_condition <- function(processed_data, modelArchitecture, threshold, split,
     # Adjust the largest group to meet logical conditions
     largest <- which.max(approx_individuals)
     approx_individuals[largest] <- ifelse(sum(approx_individuals) != test_individuals,
-                                   approx_individuals[3] + (test_individuals - sum(approx_individuals)),
+                                   approx_individuals[largest] + (test_individuals - sum(approx_individuals)),
                                    approx_individuals)
     
     # select which of the individuals will be in each group
