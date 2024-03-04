@@ -59,11 +59,11 @@ for (window_length in window) {
 #}
 
 # select the optimal hyperparamters from the csv and create the model
-optimal_window <- 1
+optimal_window <- 2
 optimal_overlap <- 10
-optimal_split <- "chronological"
-optimal_ntree <- 50
-optimal_threshold <- 40000
+optimal_split <- "random"
+optimal_ntree <- 10
+optimal_threshold <- 30000
 
 trainReturns <- train_optimal_model(formatted_data, featuresList, optimal_window, optimal_overlap, 
                       optimal_threshold, optimal_split, trainingPercentage, validationPercentage, optimal_ntree, test_individuals)
@@ -71,9 +71,10 @@ trainReturns <- train_optimal_model(formatted_data, featuresList, optimal_window
 model <- trainReturns$model
 tstDat <- trainReturns$hold_out_data # tstDat that hasn't been used in the system yet
 
-testReturns <- test_optimal_model(model, tstDat)
+testReturns <- test_optimal_model(model, valDat)
 
 print(testReturns$plot)
 testReturns$confusion
 sum(diag(testReturns$confusion)) / sum(testReturns$confusion)
+
 

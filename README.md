@@ -6,7 +6,7 @@ This script can be used to produce a RF from any raw accelerometry data. You can
 
 # Scripts
 ## Master Scripts
-- CleanTrainingData.R -> Cleaning and organising the training data from matlab to csv (this is just for me)
+- List scripts are for specifying where and what for each dataset (will turn into dictionaries later)
 - UserInput.R -> Entering all variables for each of the experiments
 - ExecuteScript.R -> Run each section of the script
 
@@ -22,3 +22,7 @@ This script can be used to produce a RF from any raw accelerometry data. You can
 ## Model Application and Validation
 - RandomForest.R -> Apply Random forest training and validation # currently very basic, add more hyperparameter tuning
 - OptimalModelRun.R -> Generate confusion matrix and plot for any set of model parameters
+
+## Just for me
+- CleanTrainingData.R -> Cleaning and organising the training data from matlab to csv
+- DataExploration.R -> Also just messing around with the lizard data at this point (will standardise later)

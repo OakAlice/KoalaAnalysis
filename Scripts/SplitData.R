@@ -78,7 +78,7 @@ split_condition <- function(processed_data, modelArchitecture, threshold, split,
     if (is.null(test_individuals)) {
       stop("test_individuals must be provided for LOIO split")
     } else if (test_individuals<3){
-      stop("test_individuals must be greater than 3 for this condition")
+      stop("test_individuals must be greater than 3 for this condition. Use 2_individuals instead.")
     }
     
     # calculating  number of individuals in labelled sets # must be whole number, cant be 0, must add to total
@@ -104,6 +104,31 @@ split_condition <- function(processed_data, modelArchitecture, threshold, split,
     trDat <- dat %>% filter(ID %in% trainingIndividuals) %>% remove_columns()
     valDat <- dat %>% filter(ID %in% validationIndividuals) %>% remove_columns()
     tstDat <- dat %>% filter(!(ID %in% trainingIndividuals | ID %in% validationIndividuals)) %>% remove_columns()
+  
+    
+    } else if (split == "2_individuals"){
+      if (test_individuals>2) {
+        stop("Only use this condition for 2 test_individuals")
+      }
+      
+      # divide the individuals
+      individuals <- unique(dat$ID)
+      first_ind <- dat[dat$ID == individuals[1], ]
+      second_ind <- dat[dat$ID == individuals[2], ]
+      
+      # chronologically split the first individual
+      first_ind <- first_ind %>% arrange(time) # arrange by time
+      n_ind <- nrow(first_ind) # find the total number of rows
+      ind_sample_sizes <- floor(trainingPercentage * n_ind) # how many rows is the training data
+      
+      trDat <- first_ind[0:ind_sample_sizes, ] # the first proportion
+      trDat <- trDat %>% remove_columns()
+      valDat <- first_ind[ind_sample_sizes:n_ind, ] # remainder prop
+      valDat <- valDat %>% remove_columns()
+      
+      # assign the second individual to the test set
+      tstDat <- second_ind %>% remove_columns()
+    
   }
   
   # Formatting the data for the SOM

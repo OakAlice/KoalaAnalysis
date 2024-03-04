@@ -18,4 +18,4 @@ JordanPerentieColumns <- c("Time" = "time",
 GabbyKoalaColumns <- c("Time" = "time", 
                         "X" = "X_accel", "Y" = "Y_accel", "Z" = "Z_accel",
                         "GX" = "X_gyro", "GY" = "Y_gyro", "GZ" = "Z_gyro",
-                        "ID" = "ID", "Activity" = "activity")
+                        "ID" = "ID", "activity" = "activity")

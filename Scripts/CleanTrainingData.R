@@ -5,8 +5,10 @@
 library(pacman)
 p_load("dplyr", "tidyverse", "utils")
 
+options(digits=22) # I want to be able to deal with time precisely
+
 # originally written for Perentie Jordan data ####
-txt_to_csv_append <- function(input_dir, output_file) {
+txt_to_csv_append <- function(input_dir, activity_key_path, output_file) {
   file_paths <- list.files(input_dir, pattern = "\\.txt$", full.names = TRUE)
   
   all_training_data <- list()
@@ -15,8 +17,8 @@ txt_to_csv_append <- function(input_dir, output_file) {
     # Extract ID from filename
     #file_path <- file_paths[1]
     file_name <- basename(file_path)
-    # ID <- sub(".*_([^.]+)\\.txt$", "\\1", file_name) # last word in string
-    ID <- sub("^([^_]+)_.*\\.txt$", "\\1", file_name)# first word in string
+    ID <- sub(".*_([^.]+)\\.txt$", "\\1", file_name) # last word in string
+    #ID <- sub("^([^_]+)_.*\\.txt$", "\\1", file_name)# first word in string
     
     
     # Read the TXT file
@@ -24,13 +26,13 @@ txt_to_csv_append <- function(input_dir, output_file) {
     training_data <- read_tsv(file_path, col_types = cols(
       Time = col_double(),
       X = col_double(),
-      GX = col_double(),
+      #GX = col_double(),
       Y = col_double(),
-      GY = col_double(),
+      #GY = col_double(),
       Z = col_double(),
-      GZ = col_double(),
+      #GZ = col_double(),
       Number = col_double()
-    ), col_names = c("Time", "X", "Y", "Z", "GX", "GY", "GZ", "Number"))
+    ), col_names = c("Time", "X", "Y", "Z", "Number")) # "GX", "GY", "GZ"
     
     # Add the ID column
     training_data$ID <- ID
@@ -56,19 +58,75 @@ txt_to_csv_append <- function(input_dir, output_file) {
 }
 
 # Paths
-input_dir <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/TxtFiles"
-output_file <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/TrainingData.csv"
-activity_key_path <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/Activity_Key.csv"
+input_dir <- "C:/Users/oakle/Documents/PhD docs/Chapter_Three_Perentie/Training Data"
+output_file <- "C:/Users/oakle/Documents/PhD docs/Chapter_Three_Perentie/Training Data/TrainingData2.csv"
+activity_key_path <- "C:/Users/oakle/Documents/PhD docs/Chapter_Three_Perentie/ActivityKey.csv"
 
 # Run the function
-labelled_data <- txt_to_csv_append(input_dir, output_file)
+labelled_data <- txt_to_csv_append(input_dir, activity_key_path, output_file)
+
+
+
+
+# ALTERNATIVE WAY
+library(vroom)
+
+txt_to_csv_append <- function(input_dir, activity_key_path, output_file) {
+  file_paths <- list.files(input_dir, pattern = "\\.txt$", full.names = TRUE)
+  
+  all_training_data <- list()
+  
+  for (file_path in file_paths) {
+    # Extract ID from filename
+    file_name <- basename(file_path)
+    ID <- sub(".*_([^.]+)\\.txt$", "\\1", file_name) # last word in string
+    
+    # Read the TXT file
+    training_data <- vroom(file_path, show_col_types = FALSE)
+    
+    # Add the column headings
+    training_data <- vroom(file_path, col_names = c("Time", "X", "Y", "Z", "Number"))
+    training_data$ID <- ID
+    
+    # Append to the list
+    all_training_data[[length(all_training_data) + 1]] <- training_data
+  }
+  
+  # Combine all DataFrames in the list into one
+  combined_data <- bind_rows(all_training_data)
+  
+  # Load activity key and merge with combined data
+  activity_key <- read_csv(activity_key_path, show_col_types = FALSE)
+  labelled_data <- left_join(combined_data, activity_key, by = "Number")
+  
+  # Remove the Number column
+  labelled_data <- select(labelled_data, -Number)
+  
+  # Write the combined and labelled data to a CSV file
+  write_csv(labelled_data, output_file)
+  
+  return(labelled_data)
+}
+
+# Paths
+input_dir <- "C:/Users/oakle/Documents/PhD docs/Chapter_Three_Perentie/Training Data"
+output_file <- "C:/Users/oakle/Documents/PhD docs/Chapter_Three_Perentie/TrainingData2.csv"
+activity_key_path <- "C:/Users/oakle/Documents/PhD docs/Chapter_Three_Perentie/ActivityKey.csv"
+
+# Run the function
+labelled_data <- txt_to_csv_append(input_dir, activity_key_path, output_file)
+
+
+
+
+
 
 
 # select only some specific individuals
 filtered_data <- labelled_data[labelled_data$ID %in% c("Meeka", "Elsa"), ]
 
 # visualise the class imbalance you have 
-ggplot(filtered_data, aes(x = Activity)) +
+ggplot(balanced_data, aes(x = Activity)) +
   geom_bar(fill = "skyblue", color = "black") +
   labs(title = "Frequency of Activities",
        x = "Activity",
@@ -85,37 +143,19 @@ ggplot(filtered_data, aes(x = Activity)) +
   scale_y_continuous(labels = function(x) format(x, scientific = FALSE))
 
 # balance it down so reasonable counts
-balance_data <- balance_data(filtered_data, 40000) # change activity for Activity if necessary
-output_file <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/ProperTrainingData2.csv"
+filtered_data <- filtered_data %>%
+  rename(activity = Activity, time = Time)
+balance_data <- balance_ID_data(filtered_data, 200000) # change activity for Activity if necessary
+balance_data <- balance_data %>%
+  select(-n, -over_threshold)
+
+output_file <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/ElsaMeekaBalancedTrainingData.csv"
 write_csv(balance_data, output_file)
 
 
 
 
-# balance data
-balance_data <- function(dat, threshold) {
-  #dat <- processed_data
-  
-  # Determine counts of each 'Activity' and identify over-represented behaviors
-  Activity_counts <- dat %>% 
-    group_by(Activity) %>%
-    tally() %>%
-    mutate(over_threshold = ifelse(n > threshold, threshold, n)) # Use the min of n and threshold
-  
-  # For over-represented behaviors, sample the desired threshold number of rows or all if less
-  oversampled_data <- dat %>% 
-    inner_join(Activity_counts %>% filter(n > threshold), by = "Activity") %>%
-    group_by(Activity) %>%
-    sample_n(size = min(over_threshold[1], n()), replace = FALSE) 
-  
-  # For other behaviors, take all rows
-  undersampled_data <- dat %>% 
-    anti_join(filter(Activity_counts, n > threshold), by = "Activity")
-  
-  # Combine and return
-  balance_data <- bind_rows(oversampled_data, undersampled_data)
-  return(balance_data)
-}
+
 
 
 # Niche stuff for my koala data ####

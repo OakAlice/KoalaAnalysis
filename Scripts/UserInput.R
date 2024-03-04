@@ -7,13 +7,13 @@ source("CsvLocationLists.R")
 
 ## SET UP ####
   # Experiment Number # for keeping track of your work
-  ExperimentNumber <- 6
+  ExperimentNumber <- 8
   
   # directory where everything is to be saved
   save_directory <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Redo"
   
   # The raw csv data
-  MovementData <- GabbyKoalaData
+  MovementData <- JordanPerentieData
 
 
 ## FORMATTING ####
@@ -21,23 +21,23 @@ source("CsvLocationLists.R")
   test_individuals <- 2
   
   # Desired sampling frequency, as Hz (potentially different from actual sampling frequency)
-  current_Hz <- 100
-  desired_Hz <- 100
+  current_Hz <- 50
+  desired_Hz <- 50
   
   # tell me which of your columns represent the 
   # ID, Time, X_accel, Y_accel, Z_accel, X_gyro, Y_gyro, Z_gyro, and activity
   # create new list, or select from ColumnSubsetList
-  columnSubset <- GabbyKoalaColumns
+  columnSubset <- JordanPerentieColumns
   
   # what format is the time in: matlab, other
   timeFormat <- "matlab"
   
   # select the behaviours to include in the analysis
   # enter new list, or select from BehavioursList
-  selectedBehaviours <- GabbyKoalaBehaviours
+  selectedBehaviours <- JordanPerentieBehaviours
   
   # target behaviours
-  targetBehaviours <- c("Walking", "Gallop", "Trot", "Bound/Half-Bound")
+  targetBehaviours <- c("Walking")
 
 
 ## PREPROCESSING ####
@@ -45,7 +45,7 @@ source("CsvLocationLists.R")
   
   # Balancing
   # Sampling Threshold, run the below code to visualise the dataset and choose a threshold
-  threshold <- c(40000)
+  threshold <- c(500)
   
   # up or down sampling 
   balancing <- c("up", "down")
@@ -55,10 +55,10 @@ source("CsvLocationLists.R")
   Normalisation <- c(TRUE, FALSE)
   
   # Window length, in seconds
-  window <- c(0.5, 1)
+  window <- c(0.5, 1, 2, 3)
   
   # Window overlap, as a decimal percentage # if <0, is overlapping
-  overlap <- c(0, 10)
+  overlap <- c(0, 10, 50)
   
   # Features to be calculated on every axis, select from following list: 
   # "mean", "max", "min", "sd", "sk", "cor", "SMA", "minODBA", "maxODBA", "minVDBA", "maxVDBA"
@@ -66,8 +66,12 @@ source("CsvLocationLists.R")
 
 
 ## VALIDATION ####
-  # Training Testing split method (choose from: random, chronological, LOIO)
-  splitMethod <- c("chronological", "random")
+  # Training Testing split method (choose from: random, chronological, LOIO, 2_individuals)
+  # 2_individuals: split ind 1 chronologically for training and validation, and ind 2 as LOIO test
+  splitMethod <- c("random", "chronological", "2_individuals")
+  
+  # stratify within the behaviours, pick from: TRUE, FALSE, or both
+  splitStratified <- c(TRUE, FALSE)
   
   # Proportion of training data, as a decimal percentage
   trainingPercentage <- 0.5

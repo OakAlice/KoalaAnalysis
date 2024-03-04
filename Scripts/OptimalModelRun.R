@@ -41,18 +41,19 @@ test_optimal_model <- function(model, tstDat){
   # compare in the form of a plot
   actual_counts <- dataframe %>% 
     count(Actual) %>% 
+    rename(Behaviour = Actual) %>% 
     mutate(Type = "Actual")
   
   predicted_counts <- dataframe %>% 
     count(Predicted) %>% 
-    rename(Actual = Predicted) %>% 
+    rename(Behaviour = Predicted) %>% 
     mutate(Type = "Predicted")
   
   # Combine actual and predicted counts
   combined_counts <- rbind(actual_counts, predicted_counts)
   
   # Plotting
-  plot <- ggplot(combined_counts, aes(x = Actual, y = n, fill = Type)) +
+  plot <- ggplot(combined_counts, aes(x = Behaviour, y = n, fill = Type)) +
     geom_bar(stat = "identity", position = "dodge") +
     scale_fill_manual(values = c("Actual" = "cadetblue", "Predicted" = "lightsalmon")) +
     theme_minimal() +
