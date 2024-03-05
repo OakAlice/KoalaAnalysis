@@ -59,97 +59,60 @@ txt_to_csv_append <- function(input_dir, activity_key_path, output_file) {
 
 # Paths
 input_dir <- "C:/Users/oakle/Documents/PhD docs/Chapter_Three_Perentie/Training Data"
-output_file <- "C:/Users/oakle/Documents/PhD docs/Chapter_Three_Perentie/Training Data/TrainingData2.csv"
+output_file <- "C:/Users/oakle/Documents/PhD docs/Chapter_Three_Perentie/TrainingData3.csv"
 activity_key_path <- "C:/Users/oakle/Documents/PhD docs/Chapter_Three_Perentie/ActivityKey.csv"
 
 # Run the function
 labelled_data <- txt_to_csv_append(input_dir, activity_key_path, output_file)
-
-
-
-
-# ALTERNATIVE WAY
-library(vroom)
-
-txt_to_csv_append <- function(input_dir, activity_key_path, output_file) {
-  file_paths <- list.files(input_dir, pattern = "\\.txt$", full.names = TRUE)
-  
-  all_training_data <- list()
-  
-  for (file_path in file_paths) {
-    # Extract ID from filename
-    file_name <- basename(file_path)
-    ID <- sub(".*_([^.]+)\\.txt$", "\\1", file_name) # last word in string
-    
-    # Read the TXT file
-    training_data <- vroom(file_path, show_col_types = FALSE)
-    
-    # Add the column headings
-    training_data <- vroom(file_path, col_names = c("Time", "X", "Y", "Z", "Number"))
-    training_data$ID <- ID
-    
-    # Append to the list
-    all_training_data[[length(all_training_data) + 1]] <- training_data
-  }
-  
-  # Combine all DataFrames in the list into one
-  combined_data <- bind_rows(all_training_data)
-  
-  # Load activity key and merge with combined data
-  activity_key <- read_csv(activity_key_path, show_col_types = FALSE)
-  labelled_data <- left_join(combined_data, activity_key, by = "Number")
-  
-  # Remove the Number column
-  labelled_data <- select(labelled_data, -Number)
-  
-  # Write the combined and labelled data to a CSV file
-  write_csv(labelled_data, output_file)
-  
-  return(labelled_data)
-}
-
-# Paths
-input_dir <- "C:/Users/oakle/Documents/PhD docs/Chapter_Three_Perentie/Training Data"
-output_file <- "C:/Users/oakle/Documents/PhD docs/Chapter_Three_Perentie/TrainingData2.csv"
-activity_key_path <- "C:/Users/oakle/Documents/PhD docs/Chapter_Three_Perentie/ActivityKey.csv"
-
-# Run the function
-labelled_data <- txt_to_csv_append(input_dir, activity_key_path, output_file)
-
-
-
-
-
 
 
 # select only some specific individuals
 filtered_data <- labelled_data[labelled_data$ID %in% c("Meeka", "Elsa"), ]
 
-# visualise the class imbalance you have 
-ggplot(balanced_data, aes(x = Activity)) +
-  geom_bar(fill = "skyblue", color = "black") +
-  labs(title = "Frequency of Activities",
-       x = "Activity",
-       y = "Frequency") +
+
+playData <- read.csv(GabbyKoalaDataAll)
+ignoreBehaviours <- (NA)
+labelledDataSummary <- balance_data %>%
+  filter(!activity %in% ignoreBehaviours) %>%
+  group_by(ID, activity) %>%
+  summarise(count = n())
+
+# account for the HZ, convert to seconds
+labelledDataSummaryplot <- labelledDataSummary %>%
+  mutate(seconds = count/current_Hz)
+
+# Plot the stacked bar graph
+my_colours <- c("#66c2a5", "#7dc3a7", "#94c5a9", "#abc6ab", "#c2c8ad", "#d9c9af",
+               "#f0cbaf", "#e9c0aa", "#e2b6a5", "#dbac9f", "#d4a29a", "#cd9895")
+
+
+behaviourIndividualDistribution <- ggplot(labelledDataSummaryplot, aes(x = activity, y = seconds, fill = ID)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Activity",
+       y = "Seconds") +
   theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    panel.background = element_blank(),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    axis.line = element_line(color = "black"),
-    axis.ticks = element_line(color = "black")
-  )+
-  scale_y_continuous(labels = function(x) format(x, scientific = FALSE))
+  scale_fill_manual(values = my_colours) +
+  theme(axis.line = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.border = element_rect(color = "black", fill = NA),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+
 
 # balance it down so reasonable counts
-filtered_data <- filtered_data %>%
+filtered_data <- playData %>%
   rename(activity = Activity, time = Time)
 balance_data <- balance_ID_data(filtered_data, 200000) # change activity for Activity if necessary
 balance_data <- balance_data %>%
   select(-n, -over_threshold)
 
-output_file <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/ElsaMeekaBalancedTrainingData.csv"
+balance_data <- balance_data %>%
+  #rename(Time = time) %>%
+  mutate(ID = ifelse(ID == "ELsa", "Elsa", ID))
+
+
+output_file <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/AllIndBalancedTrainingData.csv"
 write_csv(balance_data, output_file)
 
 

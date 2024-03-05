@@ -2,13 +2,14 @@
 # saves the output of each experiment to an appended csv and then runs the optimal settings in a new model
 
 library(pacman)
-p_load(dplyr, tidyverse, randomForest, caret, e1071, kohonen, cluster, purrr)
+p_load(dplyr, tidyverse, randomForest, caret, e1071, kohonen, cluster, purrr, cowplot)
 
 setwd("C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Scripts") # scripts location
 
 # source each of the functions from other scripts
 source("UserInput.R")
 source("ReformattingData.R")
+source("DataExploration.R")
 source("GeneralFunctions.R")
 source("FeatureProcessing.R")
 source("SplitData.R")
@@ -23,10 +24,16 @@ ensure_dir(Experiment_path) # experiment directory
 # where you want the summaries to be stored
 summary_file_path <- file.path(Experiment_path, 'Summary.csv')
 
-# Format Data
+# read in Data
 MoveData0 <- read.csv(MovementData)
+
+# format
 formatted_data <- format_movement_data(MoveData0, columnSubset, test_individuals, desired_Hz, current_Hz, selectedBehaviours, ExperimentNumber)
 
+# explore # graphs will print to the Experiment directory
+exploreData(Experiment_path, formatted_data, ignoreBehaviours)
+plotBehaviouralSamples(selectedBehaviours, formatted_data, Experiment_path)
+  
 # Process data, run models, and save to the same csv
 for (window_length in window) {
   for (overlap_percent in overlap) {
@@ -59,11 +66,11 @@ for (window_length in window) {
 #}
 
 # select the optimal hyperparamters from the csv and create the model
-optimal_window <- 2
-optimal_overlap <- 10
-optimal_split <- "random"
+optimal_window <- 3
+optimal_overlap <- 0
+optimal_split <- "LOIO"
 optimal_ntree <- 10
-optimal_threshold <- 30000
+optimal_threshold <- 1000
 
 trainReturns <- train_optimal_model(formatted_data, featuresList, optimal_window, optimal_overlap, 
                       optimal_threshold, optimal_split, trainingPercentage, validationPercentage, optimal_ntree, test_individuals)
