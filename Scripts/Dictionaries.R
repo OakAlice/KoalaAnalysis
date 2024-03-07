@@ -13,6 +13,7 @@
 #    target_behaviour = c("list")
 
 VerkjojaDog <- list(
+  name = "VerkjojaDog",
   notes = "Dog data taken from a paper",
   data_location = "C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Data/DogMoveData.csv",
   test_individuals = 45,
@@ -29,6 +30,7 @@ VerkjojaDog <- list(
 )
 
 SparkesKoala <- list(
+  name = "SparkesKoala",
   notes = "Gabby koala data",
   data_location = "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/AllIndBalancedTrainingData.csv",
   test_individuals = 12, # only 2 with a lot of data
@@ -43,14 +45,14 @@ SparkesKoala <- list(
                    "Climbing Up", "Climbing Down", "Rapid Climbing", "Swinging/Hanging",
                    "Tree Movement", "Walking", "Trot", "Gallop", "Bound/Half-Bound",
                    "Ground Sitting"),
-  behaviours_2 <- c("Tree Sitting" = "Sitting", # write in the changes
-                    "Climbing Up" = "Climbing",
-                    "Climbing Down" = "Climbing",
-                    "Ground Sitting" = "Sitting"),
+  behaviours_2 = list(
+    "Sitting" = c("Tree Sitting", "Ground Sitting"),
+    "Climbing" = c("Climbing Up", "Climbing Down")),
   target_behaviour = c("Walking")
 )
 
 WilsonKoala <- list(
+  name = "WilsonKoala",
   notes = "Koala data collected during my honours",
   data_location = "C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Data/TrainingData2.csv",
   test_individuals = 8,
@@ -68,6 +70,7 @@ WilsonKoala <- list(
 )
 
 DiCiccoPerentie <- list(
+  name = "DiCiccoPerentie",
   notes = "Perentie data from Jordan's honours (original data)", # needs to be redone
   data_location = "C:/Users/oakle/Documents/PhD docs/CHapter_Three_Perentie/TrainingData2.csv",
   test_individuals = 4,

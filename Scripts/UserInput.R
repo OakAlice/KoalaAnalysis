@@ -1,9 +1,7 @@
 # User Input
 # The script where the variables are entered and selected
 
-source("BehavioursLists.R")
-source("ColumnSubsetLists.R")
-source("CsvLocationLists.R")
+source("Dictionaries.R")
 
 ## SET UP ####
   # Experiment Number # for keeping track of your work
@@ -12,34 +10,19 @@ source("CsvLocationLists.R")
   # directory where everything is to be saved
   save_directory <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Redo"
   
-  # The raw csv data
-  MovementData <- GabbyKoalaDataAll
-
+  # which of the studies from the dictionary page
+  MovementData <- SparkesKoala
 
 ## FORMATTING ####
-  # if tagging by individuals # how many individuals to sample, set to NA if all
-  test_individuals <- 12
-  
-  # Desired sampling frequency, as Hz (potentially different from actual sampling frequency)
-  current_Hz <- 100
+  test_individuals <- MovementData$test_individuals
+  current_Hz <- MovementData$current_hz
   desired_Hz <- 100
-  
-  # tell me which of your columns represent the 
-  # ID, Time, X_accel, Y_accel, Z_accel, X_gyro, Y_gyro, Z_gyro, and activity
-  # create new list, or select from ColumnSubsetList
-  columnSubset <- GabbyKoalaColumns
-  
-  # what format is the time in: matlab, other
-  timeFormat <- "matlab"
-  
-  # select the behaviours to include in the analysis
-  # enter new list, or select from BehavioursList
-  selectedBehaviours <- GabbyKoalaBehaviours
-  ignoreBehaviours <- c("")
-  
-  # target behaviours
-  targetBehaviours <- c("Walking")
-
+  columnSubset <- MovementData$column_subset
+  timeFormat <- MovementData$time_format
+  selectedBehaviours <- MovementData$behaviours_1
+  behaviour_options <- MovementData$behaviours_2
+  ignoreBehaviours <- c("<NA>")
+  targetBehaviours <- MovementData$target_behaviour
 
 ## PREPROCESSING ####
 # can select multiple settings for each
@@ -67,9 +50,11 @@ source("CsvLocationLists.R")
 
 
 ## VALIDATION ####
-  # Training Testing split method (choose from: random, chronological, LOIO, 2_individuals)
+  # Training Testing split method (choose from: random, chronological, LOIO, 2_individuals, unique)
   # 2_individuals: split ind 1 chronologically for training and validation, and ind 2 as LOIO test
-  splitMethod <- c("random", "chronological", "2_individuals")
+  # unique options when nothing else worked: SparkesKoalaValidation
+  splitMethod <- c("SparkesKoalaValidation")
+  good_individuals <- c("Elsa", "Meeka") # just for SparkesKoalaValidation 
   
   # stratify within the behaviours, pick from: TRUE, FALSE, or both
   splitStratified <- c(TRUE, FALSE)

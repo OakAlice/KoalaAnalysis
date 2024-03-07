@@ -36,8 +36,6 @@ exploreData <- function(Experiment_path, formatted_data, ignoreBehaviours) {
 
 
 # PART TWO: DISPLAYING SAMPLES OF EACH TRACE TYPE ####
-behaviourList <- GabbyKoalaBehaviours
-formatted_data <- formatted_data
 plotBehaviouralSamples <- function(behaviourList, formatted_data, Experiment_path, n_samples) {
   # Function to create the plot for each behavior
   plot_behaviour <- function(behaviour, n_samples) {
@@ -75,5 +73,5 @@ plotBehaviouralSamples <- function(behaviourList, formatted_data, Experiment_pat
 
 # just to make one specific behaviour
 n_samples <- 200
-purrr::map("Climbing Up", ~ plot_behaviour(.x, n_samples))
+purrr::map("Bound/Half-Bound", ~ plot_behaviour(.x, n_samples))
 

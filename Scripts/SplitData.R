@@ -1,11 +1,13 @@
-# Code to create the training and testing data, saving them both as .rda files
+# Code to create the training and testing data
+
+source("Balancing.R")
 
 # process the data
 split_condition <- function(processed_data, modelArchitecture, threshold, split, 
-                            trainingPercentage, validationPercentage, test_individuals) {
+                            trainingPercentage, validationPercentage, test_individuals, good_individuals) {
   
   dat <- processed_data %>% na.omit()
-  #dat <- balance_data(dat, threshold) # balancing currently bad
+  dat <- balance_data(dat, threshold) # balancing currently bad
   
   remove_columns <- function(df) {
     df %>% select(-any_of(c("time", "n", "X", "over_threshold")))
@@ -106,7 +108,7 @@ split_condition <- function(processed_data, modelArchitecture, threshold, split,
     tstDat <- dat %>% filter(!(ID %in% trainingIndividuals | ID %in% validationIndividuals)) %>% remove_columns()
   
     
-    } else if (split == "2_individuals"){
+  } else if (split == "2_individuals"){
       if (test_individuals>2) {
         stop("Only use this condition for 2 test_individuals")
       }
@@ -129,6 +131,54 @@ split_condition <- function(processed_data, modelArchitecture, threshold, split,
       # assign the second individual to the test set
       tstDat <- second_ind %>% remove_columns()
     
+  } else if (split == "SparkesKoalaValidation"){
+    # this method for when 2 good individuals and many bad individuals, but have different behaviours and all important
+    # chronologically splits within the training individuals, and then randomly selects 1 bad individual and the LOIO good ind
+      
+    if (MovementData$name != "SparkesKoala") {
+      print("Intended for use with SparkesKoala only. Please consider whether appropriate.")
+    }
+      
+    # find the test individuals
+    last_ind <- dat[dat$ID == good_individuals[2], ] # second big individual
+    small_individuals <- setdiff(unique(dat$ID), good_individuals)
+    last_small_ind <- dat[dat$ID == small_individuals[length(small_individuals)], ]
+    
+    # make these into the test set
+    tstDat <- rbind(last_ind, last_small_ind) %>% remove_columns()
+    
+    # asign the rest to the training and validation data (chronologically split)
+    individuals <- unique(dat$ID)
+    trAndValInds <- setdiff(individuals, unique(tstDat$ID))
+    
+    # make and add to dataframes within each of the individuals
+    trDat <- data.frame()
+    valDat <- data.frame()
+    
+    # Loop over each individual
+    for (ind in trAndValInds) {
+      indData <- dat[dat$ID == ind, ]
+      
+      # Sort the data chronologically
+      indData <- indData[order(indData$time), ]
+      
+      # Calculate the number of rows for training data
+      n_rows <- nrow(indData)
+      n_train <- floor(trainingPercentage * n_rows)
+      
+      # Sample rows for training
+      train_indices <- sample(1:n_rows, n_train, replace = FALSE)
+      trDat <- rbind(trDat, indData[train_indices, ])
+      
+      # Sample rows for validation
+      val_indices <- setdiff(1:n_rows, train_indices)
+      valDat <- rbind(valDat, indData[val_indices, ])
+    }
+    
+    # remove extra columns
+    trDat <- trDat %>% remove_columns()
+    valDat <- valDat %>% remove_columns()
+
   }
   
   # Formatting the data for the SOM
