@@ -6,9 +6,9 @@ This script can be used to produce a RF from any raw accelerometry data. You can
 
 # Scripts
 ## Master Scripts
-- List scripts are for specifying where and what for each dataset (will turn into dictionaries later)
-- UserInput.R -> Entering all variables for each of the experiments
-- ExecuteScript.R -> Run each section of the script
+- Dicionaries.R -> Information from each dataset
+- UserInput.R -> Specifying the parameters you want to test
+- ExecuteScriptFull.R -> Run the script. Part 1 for model selection, part 2 for test on hold-out set
 
 ## Preprocessing
 - ReformattingData.R -> Reformat the data based on the user variables
@@ -21,8 +21,8 @@ This script can be used to produce a RF from any raw accelerometry data. You can
 
 ## Model Application and Validation
 - RandomForest.R -> Apply Random forest training and validation # currently very basic, add more hyperparameter tuning
-- OptimalModelRun.R -> Generate confusion matrix and plot for any set of model parameters
+- OptimalModelRun.R -> Generate plots for any model perofrmance
 
 ## Just for me
 - CleanTrainingData.R -> Cleaning and organising the training data from matlab to csv
-- DataExploration.R -> Also just messing around with the lizard data at this point (will standardise later)
+- DataExploration.R -> Also just messing around with the lizard data at this point

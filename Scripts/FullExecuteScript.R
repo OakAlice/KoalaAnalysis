@@ -1,4 +1,5 @@
 ## Execute Script 2 continuous version ##
+#!/usr/bin/env Rscript
 # saves the output of each experiment to an appended csv and then runs the optimal settings in a new model
 
 library(pacman)
@@ -54,16 +55,16 @@ plotBehaviouralSamples(selectedBehaviours, formatted_data, Experiment_path)
           tstDat <- na.omit(list_train_test$test)
           
           #if ("RF" %in% modelArchitecture) {
-            for (trees in ntree_list) {
+            for (trees_number in ntree_list) {
               # Train and Test Random Forest Model
-              rf_model <- train_rf_model(trDat, trees)
+              rf_model <- train_rf_model(trDat, trees_number)
               test_predictions <- predict_rf_model(rf_model, valDat)
               metrics_df <- evaluate_rf_model(test_predictions, valDat, targetBehaviours)
               
               summary_df <- save_rf_model(
                 rf_model, metrics_df, ExperimentNumber, test_individuals, 
                 desired_Hz, selectedBehaviours, featuresList, threshold, window_length, 
-                overlap_percent, split, trees, summary_file_path
+                overlap_percent, split, trees_number, summary_file_path
               )
         }
       }
@@ -75,8 +76,8 @@ plotBehaviouralSamples(selectedBehaviours, formatted_data, Experiment_path)
 optimal_window <- 2
 optimal_overlap <- 0
 optimal_split <- "SparkesKoalaValidation"
-optimal_ntree <- 10
-optimal_threshold <- 2000
+optimal_ntree <- 150
+optimal_threshold <- 4000
 
 trainReturns <- train_optimal_model(formatted_data, featuresList, optimal_window, optimal_overlap, 
                       optimal_threshold, optimal_split, trainingPercentage, validationPercentage, optimal_ntree, test_individuals, good_individuals)
@@ -86,10 +87,15 @@ tstDat <- trainReturns$hold_out_data # tstDat that hasn't been used in the syste
 
 testReturns <- test_optimal_model(model, valDat)
 
-print(testReturns$plot)
+print(testReturns$plot_pred_act)
 testReturns$confusion
 sum(diag(testReturns$confusion)) / sum(testReturns$confusion)
 print(testReturns$confusion_plot)
+print(testReturns$plot_stacked)
+
+
+
+
 
 
 

@@ -7,7 +7,7 @@ split_condition <- function(processed_data, modelArchitecture, threshold, split,
                             trainingPercentage, validationPercentage, test_individuals, good_individuals) {
   
   dat <- processed_data %>% na.omit()
-  dat <- balance_data(dat, threshold) # balancing currently bad
+  dat <- balance_data(dat, threshold)
   
   remove_columns <- function(df) {
     df %>% select(-any_of(c("time", "n", "X", "over_threshold")))

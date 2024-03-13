@@ -25,14 +25,53 @@ train_optimal_model <- function(formatted_data, featuresList, optimal_window, op
   return(list(hold_out_data = tstDat, model = rf_model))
 }
 
-test_optimal_model <- function(model, tstDat){
+
+
+test_optimal_model <- function(model, tstDat, probabilityReport, probabilityThreshold){
   # predict onto the testing data
-  test_predictions <- predict_rf_model(model, tstDat)
   
-  # extract the actual classes
-  test_actual <- factor(tstDat$activity)
+  # whether you want normal classification or probability reported
+  if (probabilityReport == FALSE){
+    test_predictions <- predict_rf_model(model, tstDat)
+    # convert to chanracter and change formatting
+    test_predictions <- as.character(test_predictions)
+    test_predictions <- gsub("[/\\.]", " ", test_predictions)
+    
+    test_predictions <- as.factor(test_predictions)
+    
+    }else{ # probability reports then get handled differently
+    
+    test_predictions <- predict(model, newdata = tstDat, type = "prob")
+        # this gives me the probability of all classes. 
+        # now I need to extract the class above the probabilityThreshold
   
-  # create a confusion matrix
+    test_predictions <- data.frame(test_predictions)
+    test_predictions <- test_predictions %>%
+      mutate(likelyActivity = apply(test_predictions[, -1], 1, function(x) {
+        if (all(is.na(x))) {
+          NA
+        } else {
+          max_index <- which.max(x)
+          if (!is.na(max_index) && x[max_index] > probabilityThreshold) {
+            names(x)[max_index]
+          } else {
+            NA
+          }
+        }
+      }))
+    
+    # Merge predicted probabilities with actual behaviors
+    test_predictions <- test_predictions %>%
+      mutate(likelyActivity = gsub("\\.", " ", likelyActivity))
+    test_predictions <- as.factor(test_predictions$likelyActivity)
+  }
+  
+  
+  # extract the actual classes and change their formatting to match
+  test_actual <- as.character(tstDat$activity)
+  test_actual <- gsub("[/\\.]", " ", test_actual)
+  test_actual <- as.factor(test_actual)
+  
   unique_classes <- union(levels(test_actual), levels(test_predictions))
   
   confusion_matrix <- table(factor(test_actual, levels = unique_classes), 
@@ -94,6 +133,46 @@ test_optimal_model <- function(model, tstDat){
          alpha = "Count") +
     guides(alpha = "none") +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
- 
-  return(list(confusion = confusion_matrix, confusion_plot = confusion_matrix_plot, plot = plot))
+  
+  # here's another plot that better shows me the breakdown
+  # Convert confusion matrix to data frame
+  confusion_df <- as.data.frame(as.table(confusion_matrix))
+  names(confusion_df) <- c("Actual", "Predicted", "Count")
+  
+  # Plot
+  custom_palette <- c("#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#ffd92f", "#e5c494", "#b3b3b3", "#ff69b4", "#ba55d3", "#cd5c5c", "#ffa07a", "#f08080", "#4682b4", "#20b2aa", "#3A7C75", "#00ff00")
+  alternative_plot <- ggplot(confusion_df, aes(x = Predicted, y = Count, fill = Actual)) +
+    geom_bar(stat = "identity") +
+    labs(x = "Predicted Activity",
+         y = "Count") +
+    scale_fill_manual(values = custom_palette) +
+    theme_minimal() +
+    theme(legend.position = "right",
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          panel.grid = element_blank(),
+          panel.border = element_rect(color = "black", fill = NA, size = 1))
+  
+  # and then a visualisation of what was lost into the NAs
+  NAdataframe_counts <- dataframe %>%
+    filter(is.na(Predicted)) %>%
+    count(Actual) %>%
+    rename(Frequency = n)
+  
+  # Plot the bar graph
+  NAplot <- ggplot(NAdataframe_counts, aes(x = Actual, y = Frequency, fill = Actual)) +
+    geom_bar(stat = "identity") +
+    scale_fill_manual(values = custom_palette) +
+    labs(x = "Actual behaviour classified as NA", y = "Frequency") +
+    theme_minimal() +
+    theme(legend.position = "right",
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          panel.grid = element_blank(),
+          panel.border = element_rect(color = "black", fill = NA, size = 1))
+  
+  return(list(confusion = confusion_matrix, confusion_plot = confusion_matrix_plot, 
+              plot_pred_act = plot, plot_stacked = alternative_plot,
+              NA_loss_plot = NAplot))
 }
+
+
+

@@ -29,7 +29,7 @@ source("Dictionaries.R")
   
   # Balancing
   # Sampling Threshold
-  threshold <- c(40000)
+  threshold <- c(4000)
   
   # up or down sampling 
   balancing <- c("up", "down")
@@ -42,7 +42,7 @@ source("Dictionaries.R")
   window <- c(1, 2)
   
   # Window overlap, as a decimal percentage # if <0, is overlapping
-  overlap <- c(0, 10)
+  overlap <- c(0, 10, 20)
   
   # Features to be calculated on every axis, select from following list: 
   # "mean", "max", "min", "sd", "sk", "cor", "SMA", "minODBA", "maxODBA", "minVDBA", "maxVDBA"
@@ -68,8 +68,10 @@ source("Dictionaries.R")
 ## MODEL ARCHITECTURE ####
 # Model architecture, RF or SOM
   modelArchitecture <- "RF"
+  probabilityReport <- c(TRUE) # True or false
+  probabilityThreshold <- 80 # as a percentage, above which accepted as true
   
   # hyperparamters ### need to make this with multiple versions
   #data_presentations <- c(100, 200) # for the SOM
-  ntree_list <- c(10, 50) # for RF
+  ntree_list <- c(10, 50, 100, 150, 200) # for RF
 
