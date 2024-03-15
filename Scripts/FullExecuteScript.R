@@ -1,15 +1,15 @@
 ## Execute Script 2 continuous version ##
-#!/usr/bin/env Rscript
-# saves the output of each experiment to an appended csv and then runs the optimal settings in a new model
+# saves the output of each experiment to an appended csv and then runs optimal settings in a new model
 
 library(pacman)
-p_load(dplyr, tidyverse, randomForest, caret, e1071, kohonen, cluster, purrr, cowplot, scales)
+p_load(dplyr, tidyverse, randomForest, ggpubr, caret, e1071, kohonen, cluster, purrr, cowplot, scales)
 
 setwd("C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Scripts") # scripts location
 
 # source each of the functions from other scripts
 source("UserInput.R")
 source("ReformattingData.R")
+source("CombiningBehaviours.R")
 source("DataExploration.R")
 source("GeneralFunctions.R")
 source("FeatureProcessing.R")
@@ -18,6 +18,7 @@ source("SplitData.R")
 source("RandomForest.R")
 source("OptimalModelRun.R")
 
+## PART ZERO: SET UP ####
 # make the experiment directory
 Experiment_path <- paste0(save_directory, "/Experiment_", ExperimentNumber)
 ensure_dir(Experiment_path) # experiment directory
@@ -35,13 +36,14 @@ formatted_data <- format_movement_data(MoveData0, columnSubset, test_individuals
 exploreData(Experiment_path, formatted_data, ignoreBehaviours)
 plotBehaviouralSamples(selectedBehaviours, formatted_data, Experiment_path)
   
+# create the behaviour labels for this round
+relabelled_data <- relabel_activities(formatted_data, relabelledBehaviours)
+relabelled_data <- relabelled_data[relabelled_data$activity != "NA", ]
+#relabelled_data <- formatted_data
+
+  
+## PART ONE: MODEL SELECTION ####  
 # Process data, run models, and save to the same csv
-#for (behaviours in behaviour_options) {
-  
-  # create the behaviour labels for this round
-  #relabelled_data <- relabel_activities(formatted_data, behaviours)
-  relabelled_data <- formatted_data
-  
   for (window_length in window) {
     for (overlap_percent in overlap) {
       # Process data
@@ -72,53 +74,35 @@ plotBehaviouralSamples(selectedBehaviours, formatted_data, Experiment_path)
   }
 #}
 
+  
+## PART TWO: OPTIMAL MODEL ####  
 # select the optimal hyperparamters from the csv and create the model
 optimal_window <- 2
-optimal_overlap <- 0
+optimal_overlap <- 10
 optimal_split <- "SparkesKoalaValidation"
-optimal_ntree <- 150
-optimal_threshold <- 4000
+optimal_ntree <- 100
+optimal_threshold <- 10000
 
-trainReturns <- train_optimal_model(formatted_data, featuresList, optimal_window, optimal_overlap, 
-                      optimal_threshold, optimal_split, trainingPercentage, validationPercentage, optimal_ntree, test_individuals, good_individuals)
+#create dataasets
+processed_data <- process_data(relabelled_data, featuresList, optimal_window, optimal_overlap)
+list_train_test <- split_condition(processed_data, modelArchitecture, optimal_threshold, 
+                                   optimal_split, trainingPercentage, validationPercentage, 
+                                   test_individuals, good_individuals)
+trDat <- na.omit(list_train_test$train)
+valDat <- na.omit(list_train_test$validate)
+tstDat <- na.omit(list_train_test$test)
+randomised_tstDat <- tstDat
+randomised_tstDat$activity <- randomised_tstDat$activity[sample(nrow(randomised_tstDat))]
 
-model <- trainReturns$model
-tstDat <- trainReturns$hold_out_data # tstDat that hasn't been used in the system yet
+# train model
+rf_model <- train_rf_model(trDat, optimal_ntree)
 
-testReturns <- test_optimal_model(model, valDat)
+# check it
+probabilityReport <- FALSE
+probabilityThreshold <- 0.5
+testReturns <- test_optimal_model(rf_model, tstDat, probabilityReport, probabilityThreshold)
 
 print(testReturns$plot_pred_act)
-testReturns$confusion
-sum(diag(testReturns$confusion)) / sum(testReturns$confusion)
 print(testReturns$confusion_plot)
 print(testReturns$plot_stacked)
-
-
-
-
-
-
-
-
-
-confusion_matrix <- testReturns$confusion
-
-# Calculate the sensitivity (true positive rate) for each class
-sensitivity <- diag(confusion_matrix) / colSums(confusion_matrix)
-
-# Calculate the specificity (true negative rate) for each class
-specificity <- apply(confusion_matrix, 2, function(x) {
-  TN <- sum(diag(confusion_matrix)) - sum(x)
-  FP <- sum(x) - x
-  return(TN / (TN + FP))
-})
-
-# Calculate the balanced accuracy
-balanced_accuracy <- mean(c(sensitivity, specificity))
-
-balanced_accuracy
-
-
-
-
-
+print(testReturns$metrics)

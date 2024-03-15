@@ -1,6 +1,5 @@
 ## Basic Data Exploration
 # before beginning to build to model, generally explore the data
-# in the process of automating this 
 
 ### PART ONE: MAKE A PLOT ####
 my_colours <- c("#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#e49e18", 
@@ -42,7 +41,7 @@ plotBehaviouralSamples <- function(behaviourList, formatted_data, Experiment_pat
     df <- formatted_data %>%
       filter(activity == behaviour) %>%
       group_by(ID, activity) %>%
-      slice_head(n = n_samples) %>%
+      slice(1:n_samples) %>%
       mutate(relative_time = row_number())
     
     
@@ -59,10 +58,10 @@ plotBehaviouralSamples <- function(behaviourList, formatted_data, Experiment_pat
   }
   
   # Create plots for each behavior
-  plots <- purrr::map(behaviourList, ~ plot_behaviour(.x))
+  plots <- purrr::map(behaviourList, ~ plot_behaviour(.x, n_samples))
   
   # Combine plots into a single grid
-  grid_plot <- cowplot::plot_grid(plotlist = plots, ncol = 4)
+  grid_plot <- cowplot::plot_grid(plotlist = plots, ncol = length(plots)/2)
   
   # Save the grid plot
   ggsave(file.path(Experiment_path, "behaviours_grid_plot.png"), plot = grid_plot)
@@ -72,6 +71,6 @@ plotBehaviouralSamples <- function(behaviourList, formatted_data, Experiment_pat
 
 
 # just to make one specific behaviour
-n_samples <- 200
-purrr::map("Bound/Half-Bound", ~ plot_behaviour(.x, n_samples))
+n_samples <- 10000
+purrr::map("Walking", ~ plot_behaviour(.x, n_samples))
 

@@ -128,3 +128,54 @@ process_data <- function(MoveData, featuresList, window, overlap) {
   
   return(processed_data)
 }
+
+
+key_behaviours <- c("Grooming", "Walking")
+extractFeatureInformation <- function(processed_data, key_behaviours){
+  summary <- processed_data %>%
+    filter(activity %in% key_behaviours) %>%
+    group_by(activity, ID) %>%
+    summarise(across(where(is.numeric), 
+                     list(max = ~max(.), min = ~min(.), mean = ~mean(.), var = ~var(.)),
+                     .names = "{col}_{fn}"))
+  
+  
+  my_colours <- c("#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#e49e18", 
+                  "#ffd92f", "#e5c494", "#b3b3b3", "#ff69b4", "#ba55d3", "#3fd7af")
+  
+  
+  numeric_cols <- colnames(processed_data)[!colnames(processed_data) %in% c("activity", "ID")]
+  numeric_cols <- numeric_cols[numeric_cols != "time"]
+  selected_cols <- grep("X", numeric_cols, value = TRUE)
+  selected_cols <- grep("accel", numeric_cols, value = TRUE)
+  
+  plots <- list()
+  
+  # Loop over each numeric column and create a plot
+  for (col in selected_cols) {
+    p <- ggplot(summary, aes_string(x = "activity", y = paste0(col, "_mean"), color = "as.factor(ID)")) +
+      geom_point(position = position_jitterdodge(jitter.width = 0.2), size = 3) +
+      geom_errorbar(aes_string(ymin = paste0(col, "_min"), ymax = paste0(col, "_max")),
+                    position = position_jitterdodge(jitter.width = 0.2),
+                    width = 0.4) +
+      labs(title = paste(col)) +
+      scale_color_manual(values = my_colours, name = "ID") +
+      theme_minimal() +
+      theme(legend.position = "none",
+            axis.line = element_blank(),
+            axis.title.x = element_blank(),
+            axis.title.y = element_blank(),
+            axis.text.y = element_blank(),  # Remove y-axis labels
+            panel.border = element_rect(color = "black", fill = NA),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank())
+    
+    plots[[col]] <- p
+  }
+  
+  # Combine all plots into a single image
+  multiplot <- do.call(gridExtra::grid.arrange, c(plots, ncol = 5))
+  
+  return(activityPlot = multiplot)
+}
+

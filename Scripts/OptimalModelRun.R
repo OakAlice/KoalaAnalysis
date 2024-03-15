@@ -26,13 +26,18 @@ train_optimal_model <- function(formatted_data, featuresList, optimal_window, op
 }
 
 
-
 test_optimal_model <- function(model, tstDat, probabilityReport, probabilityThreshold){
   # predict onto the testing data
+  test_actual <- factor(tstDat$activity) # extract the actual names 
+  test_predictors <- tstDat %>% # extract the predictors
+    ungroup() %>%
+    select(-any_of(c("activity", "ID", "row_num", "max_rows"))) %>%
+    mutate(across(everything(), as.numeric))
   
-  # whether you want normal classification or probability reported
   if (probabilityReport == FALSE){
-    test_predictions <- predict_rf_model(model, tstDat)
+    
+    test_predictions <- predict(model, test_predictors) # predict
+    
     # convert to chanracter and change formatting
     test_predictions <- as.character(test_predictions)
     test_predictions <- gsub("[/\\.]", " ", test_predictions)
@@ -41,7 +46,7 @@ test_optimal_model <- function(model, tstDat, probabilityReport, probabilityThre
     
     }else{ # probability reports then get handled differently
     
-    test_predictions <- predict(model, newdata = tstDat, type = "prob")
+    test_predictions <- predict(model, newdata = test_predictors, type = "prob")
         # this gives me the probability of all classes. 
         # now I need to extract the class above the probabilityThreshold
   
@@ -65,7 +70,6 @@ test_optimal_model <- function(model, tstDat, probabilityReport, probabilityThre
       mutate(likelyActivity = gsub("\\.", " ", likelyActivity))
     test_predictions <- as.factor(test_predictions$likelyActivity)
   }
-  
   
   # extract the actual classes and change their formatting to match
   test_actual <- as.character(tstDat$activity)
@@ -169,9 +173,37 @@ test_optimal_model <- function(model, tstDat, probabilityReport, probabilityThre
           panel.grid = element_blank(),
           panel.border = element_rect(color = "black", fill = NA, size = 1))
   
+  
+  # make the metrics print out
+  confusion_matrix <- testReturns$confusion
+  TP <- diag(confusion_matrix)
+  TN <- sum(confusion_matrix) - rowSums(confusion_matrix) - colSums(confusion_matrix) + 2 * diag(confusion_matrix)
+  FP <- colSums(confusion_matrix) - TP
+  FN <- rowSums(confusion_matrix) - TP
+  
+  accuracy <- sum(TP) / sum(confusion_matrix)
+  recall <- TP / (TP + FN)
+  precision <- TP / (TP + FP)
+  F1 <- ifelse((precision + recall) > 0, 2 * (precision * recall) / (precision + recall), 0)
+  MCC <- (TP * TN - FP * FN) / sqrt((TP + FP) * (TP + FN) * (TN + FP) * (TN + FN))
+  
+  # Calculate specificity for all classes
+  num_classes <- ncol(confusion_matrix)
+  specificity_all <- numeric(num_classes)
+  for (i in 1:num_classes) {
+    TN_class <- sum(confusion_matrix) - sum(confusion_matrix[i, ]) - sum(confusion_matrix[, i]) + confusion_matrix[i, i]
+    FP_class <- sum(confusion_matrix[, i]) - confusion_matrix[i, i]
+    specificity_all[i] <- TN_class / (TN_class + FP_class)
+  }
+  specificity <- mean(specificity_all)
+  
+  metrics <- data.frame(General_accuracy = accuracy, Mean_recall = mean(recall), Mean_precision = mean(precision), General_specificity = specificity, Mean_F1 = mean(F1), MCC = mean(MCC))
+  
+
+  
   return(list(confusion = confusion_matrix, confusion_plot = confusion_matrix_plot, 
               plot_pred_act = plot, plot_stacked = alternative_plot,
-              NA_loss_plot = NAplot))
+              NA_loss_plot = NAplot, metrics = metrics))
 }
 
 

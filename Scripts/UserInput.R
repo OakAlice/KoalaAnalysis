@@ -20,6 +20,7 @@ source("Dictionaries.R")
   columnSubset <- MovementData$column_subset
   timeFormat <- MovementData$time_format
   selectedBehaviours <- MovementData$behaviours_1
+  relabelledBehaviours <- MovementData$behaviours_2
   behaviour_options <- MovementData$behaviours_2
   ignoreBehaviours <- c("<NA>")
   targetBehaviours <- MovementData$target_behaviour

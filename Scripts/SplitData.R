@@ -10,7 +10,7 @@ split_condition <- function(processed_data, modelArchitecture, threshold, split,
   dat <- balance_data(dat, threshold)
   
   remove_columns <- function(df) {
-    df %>% select(-any_of(c("time", "n", "X", "over_threshold")))
+    df %>% select(-any_of(c("time", "n", "X", "over_threshold", "max_rows")))
   }
   
   testingPercentage <- 1- trainingPercentage - validationPercentage

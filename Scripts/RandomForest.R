@@ -6,7 +6,7 @@ train_rf_model <- function(trDat, trees) {
 
   predictors <- trDat %>% 
     ungroup() %>%
-    select(-any_of(c("activity", "ID"))) %>%
+    select(-any_of(c("activity", "ID", "max_rows"))) %>%
     mutate(across(everything(), as.numeric))
   
   target <- factor(trDat$activity)

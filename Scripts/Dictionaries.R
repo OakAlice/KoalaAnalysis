@@ -46,8 +46,12 @@ SparkesKoala <- list(
                    "Tree Movement", "Walking", "Trot", "Gallop", "Bound/Half-Bound",
                    "Ground Sitting"),
   behaviours_2 = list(
-    "Sitting" = c("Tree Sitting", "Ground Sitting"),
-    "Climbing" = c("Climbing Up", "Climbing Down")),
+    "Inactive" = c("Tree Sitting", "Sleeping/Resting", "Ground Sitting"),
+    "Tree Movement" = c("Tree Movement", "Swinging/Hanging"),
+    "NA" = "Bellowing",
+    "Climbing" = c("Climbing Down", "Climbing Up", "Rapid Climbing"),
+    "Walking" = c("Walking", "Trot", "Gallop", "Bound/Half-Bound")
+    ),
   target_behaviour = c("Walking")
 )
 
