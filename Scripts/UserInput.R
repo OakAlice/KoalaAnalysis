@@ -47,7 +47,8 @@ source("Dictionaries.R")
   
   # Features to be calculated on every axis, select from following list: 
   # "mean", "max", "min", "sd", "sk", "cor", "SMA", "minODBA", "maxODBA", "minVDBA", "maxVDBA"
-  featuresList <- c("mean", "max", "min", "sd", "cor", "SMA", "minODBA", "maxODBA", "minVDBA", "maxVDBA")
+  featuresList <- c("mean", "max", "min", "sd", "cor", "SMA", "minODBA", "maxODBA", "minVDBA", "maxVDBA",
+                    "RMS", "FFT", "auto", "entropy", "zero_crossing")
 
 
 ## VALIDATION ####

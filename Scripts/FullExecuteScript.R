@@ -2,7 +2,8 @@
 # saves the output of each experiment to an appended csv and then runs optimal settings in a new model
 
 library(pacman)
-p_load(dplyr, tidyverse, randomForest, ggpubr, caret, e1071, kohonen, cluster, purrr, cowplot, scales)
+p_load(dplyr, tidyverse, randomForest, ggpubr, caret, e1071, kohonen, 
+       WaveletComp, cluster, purrr, cowplot, scales, crqa, pracma)
 
 setwd("C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Scripts") # scripts location
 
@@ -78,13 +79,27 @@ relabelled_data <- relabelled_data[relabelled_data$activity != "NA", ]
 ## PART TWO: OPTIMAL MODEL ####  
 # select the optimal hyperparamters from the csv and create the model
 optimal_window <- 2
-optimal_overlap <- 10
+optimal_overlap <- 0
 optimal_split <- "SparkesKoalaValidation"
 optimal_ntree <- 100
-optimal_threshold <- 10000
+optimal_threshold <- 4000
 
 #create dataasets
+relabelled_data <- formatted_data
 processed_data <- process_data(relabelled_data, featuresList, optimal_window, optimal_overlap)
+
+
+# look at the feature information
+key_behaviours <- c("Groom", "Walk", "Branch", "Bound", "Trot")
+# temporarily relabel for visuals
+processed_data2 <- processed_data %>%
+  mutate(activity = recode(activity,
+                           "Grooming" = "Groom", "Walking" = "Walk", "Branch Walking" = "Branch",
+                           "Bound/Half-Bound" = "Bound", "Trot" = "Trot"))
+
+extractFeatureInformation(processed_data2, key_behaviours, 7) # go here and look at the function
+
+# get the training and testing data
 list_train_test <- split_condition(processed_data, modelArchitecture, optimal_threshold, 
                                    optimal_split, trainingPercentage, validationPercentage, 
                                    test_individuals, good_individuals)
