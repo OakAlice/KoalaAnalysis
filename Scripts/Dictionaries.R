@@ -49,6 +49,7 @@ SparkesKoala <- list(
     "Inactive" = c("Tree Sitting", "Sleeping/Resting", "Ground Sitting"),
     "Tree Movement" = c("Tree Movement", "Swinging/Hanging"),
     "NA" = "Bellowing",
+    "NA" = "Shake",
     "Climbing" = c("Climbing Down", "Climbing Up", "Rapid Climbing"),
     "Walking" = c("Walking", "Trot", "Gallop", "Bound/Half-Bound")
     ),

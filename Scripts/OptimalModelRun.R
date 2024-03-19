@@ -1,30 +1,4 @@
-# Perform the optimal model
-
-
-train_optimal_model <- function(formatted_data, featuresList, optimal_window, optimal_overlap, 
-                                  threshold, optimal_split, trainingPercentage, validationPercentage, optimal_ntree, test_individuals, good_individuals){
-  
-  # process the data with these parameters
-  processed_data <- process_data(formatted_data, featuresList, optimal_window, optimal_overlap)
-  
-  # split into training and testing
-  list_train_test <- split_condition(processed_data, modelArchitecture, threshold, optimal_split, trainingPercentage, validationPercentage, test_individuals, good_individuals)
-  
-  # extract the training and testing data
-  trDat <- na.omit(list_train_test$train)
-  valDat <- na.omit(list_train_test$validate)
-  tstDat <- na.omit(list_train_test$test)
-  
-  trDat <- trDat %>%
-    ungroup() %>%
-    select(-any_of(c("ID", "row_num")))
-  
-  # train the RF
-  rf_model <- train_rf_model(trDat, optimal_ntree)
-  
-  return(list(hold_out_data = tstDat, model = rf_model))
-}
-
+## Plots and stuff for the final version 
 plot_confusion <- function(confusion_matrix) {
   # Convert confusion matrix to data frame
   conf_df <- as.data.frame(as.table(confusion_matrix))
@@ -193,36 +167,8 @@ verify_optimal_results <- function(data, featuresList, window_length, overlap_pe
                                    validation_percentage, test_individuals, good_individuals,
                                    test_type, probabilityReport, probabilityThreshold) {
   # Process data in parallel
-  
-  # Split the data into chunks based on window length and overlap
-  chunk_size <- round(window_length * 1000)
-  overlap_size <- round(chunk_size * overlap_percent)
-  num_chunks <- ceiling(nrow(data) / (chunk_size - overlap_size))
-  
-  # Create a list of data chunks
-  chunks <- lapply(1:num_chunks, function(i) {
-    start <- (i - 1) * (chunk_size - overlap_size) + 1
-    end <- min(start + chunk_size - 1, nrow(data))
-    return(data[start:end, ])
-  })
-  
-  # activate the cores
-  cl <- makeCluster(num_cores-2)
-  registerDoParallel(cl)
-  clusterExport(cl, c("calculate_autocorrelation", "calculate_entropy", "calculate_zero_crossing",
-                      "compute_features", "process_data"))
-  
-  # Process each of the chunks in parallel, access to all scripts in FeatureProcessing.R
-  processed_chunks <- foreach(chunk = chunks, .combine = 'rbind') %dopar% {
-    process_data(chunk, featuresList, window_length, overlap_percent, desired_Hz)
-  }
-  #combine
-  processed_data <- data.frame(processed_chunks)
-  
-  # Stop the cluster
-  stopCluster(cl)
-  
-  
+  processed_data <- process_data(data, featuresList, window_length, overlap_percent, desired_Hz)
+
   # Split data
   list_train_test <- split_condition(processed_data, modelArchitecture, threshold, 
                                      split_method, training_percentage, validation_percentage, 
@@ -250,7 +196,7 @@ verify_optimal_results <- function(data, featuresList, window_length, overlap_pe
   
   ## make the plots from the confusion matrix
   confusion_plot <- plot_confusion(confusion_matrix)
-  stacked_plot <- plot_stacked(confusion_matrix, test_predictions, test_actual)
+  stacked <- plot_stacked(confusion_matrix, test_predictions, test_actual)
   metrics <- display_metrics(confusion_matrix)
   
   testReturns <- list(confusion_matrix = confusion_matrix, 

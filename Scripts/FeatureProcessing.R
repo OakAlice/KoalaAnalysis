@@ -97,43 +97,41 @@ compute_features <- function(window_chunk, featuresList) {
 
 
 process_data <- function(formatted_data, featuresList, window_length, overlap, desired_Hz) {
+  # this section will be done with parallel processing
+  
+  # activate the cores
+  num_cores <- detectCores()
+  cl <- makeCluster(num_cores-2)
+  registerDoParallel(cl)
+  clusterExport(cl, c("calculate_autocorrelation", "calculate_entropy", "calculate_zero_crossing",
+                      "compute_features"))
+  
+  # Calculate window size in samples
+  window_samples <- window_length * desired_Hz
+  
+  # Calculate overlap size in samples
+  overlap_samples <- if (overlap > 0) (overlap / 100) * window_samples else 0
   
   # Initialize an empty list to store the processed data chunks
-  processed_windows <- list()
+  processed_windows <- foreach(st = seq(1, nrow(formatted_data), by = window_samples - overlap_samples),
+                               .combine = 'rbind') %dopar% {
+                                 fn <- min(st + window_samples - 1, nrow(formatted_data))
+                                 window_chunk <- formatted_data[st:fn, ]
+                                 compute_features(window_chunk, featuresList)
+                               }
   
-  # Update starting and ending points for the next chunk
-  window_samples = window_length * desired_Hz
-  
-  # Define the starting and ending points for the chunks
-  st <- 1
-  fn <- st + window_samples -1
-  
-  # Iterate over the chunks of data
-  while (fn <= nrow(formatted_data)) {
-    
-    # Extract the current chunk
-    window_chunk <- formatted_data[st:fn, ]
-    
-    # Compute features for the chunk
-    features_data <- compute_features(window_chunk, featuresList)
-    
-    print(fn)
-    # Add the processed chunk to the list
-    processed_windows <- c(processed_windows, list(features_data))
-    
-    if (overlap == 0) { # if no overlap, advance by a full window length
-      st <- st + window_samples
-      fn <-  fn + window_samples
-    } else { # if there is some overlap, calculate it
-      overlapped_samples <- (overlap / 100) * window_samples
-      st <- st + (window_samples - overlapped_samples)
-      fn <- fn + (window_samples - overlapped_samples)
-      
-    }
-  }
+  # Stop the cluster
+  stopCluster(cl)
   
   # Combine all the processed chunks into a single data frame
   processed_data <- do.call(rbind, processed_windows)
+  processed_data <- data.frame(processed_data)
+  
+  # Transpose the processed_data dataframe and rename the columns
+  transposed_data <- t(processed_data)
+  colnames(transposed_data) <- rownames(processed_data)
+  rownames(transposed_data) <- NULL
+  processed_data <- data.frame(transposed_data)
   
   return(processed_data)
 }
