@@ -7,6 +7,12 @@ calculate_autocorrelation <- function(axis_data, lag) {
   return(autocorrelation)
 }
 
+calculate_entropy <- function(axis_data) {
+  freq <- table(axis_data) / length(axis_data)
+  entropy <- -sum(freq * log2(freq))
+  return(entropy)
+}
+
 calculate_zero_crossing <- function(window_data) {
   # Calculate the sign of each element in the windowed data
   signs <- sign(window_data) # as in literally whether its positive or negative
@@ -34,7 +40,7 @@ compute_features <- function(window_chunk, featuresList) {
     result[paste0("sk_", axis)] <- e1071::skewness(axis_data, na.rm = TRUE)
     result[paste0("RMS_", axis)] <- sqrt(abs(mean(axis_data, na.rm = TRUE)))
     result[paste0("auto_", axis)] <- calculate_autocorrelation(axis_data, 20)
-    result[paste0("entropy_", axis)] <- approx_entropy(axis_data, edim = 2, r = 0.2*sd(axis_data), elag = 1)
+    result[paste0("entropy_", axis)] <- calculate_entropy(axis_data)
     result[paste0("zero_", axis)] <- calculate_zero_crossing(axis_data)
   }
   
@@ -90,7 +96,7 @@ compute_features <- function(window_chunk, featuresList) {
 
 
 
-process_data <- function(formatted_data, featuresList, window_length, overlap) {
+process_data <- function(formatted_data, featuresList, window_length, overlap, desired_Hz) {
   
   # Initialize an empty list to store the processed data chunks
   processed_windows <- list()

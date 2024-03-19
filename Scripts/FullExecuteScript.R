@@ -3,21 +3,23 @@
 
 library(pacman)
 p_load(dplyr, tidyverse, randomForest, ggpubr, caret, e1071, kohonen, 
-       WaveletComp, cluster, purrr, cowplot, scales, crqa, pracma)
+       WaveletComp, cluster, purrr, cowplot, scales, crqa, pracma, doParallel,
+       foreach)
+
+# set up for parallelisation
+num_cores <- detectCores()
+cl <- makeCluster(num_cores-2)
 
 setwd("C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Scripts") # scripts location
 
 # source each of the functions from other scripts
-source("UserInput.R")
-source("ReformattingData.R")
-source("CombiningBehaviours.R")
-source("DataExploration.R")
-source("GeneralFunctions.R")
-source("FeatureProcessing.R")
-source("SplitData.R")
-#source("Clustering.R")
-source("RandomForest.R")
-source("OptimalModelRun.R")
+files <- c("UserInput.R", "ReformattingData.R", "CombiningBehaviours.R", 
+           "DataExploration.R", "GeneralFunctions.R", "FeatureProcessing.R", 
+           "SplitData.R", "RandomForest.R", "OptimalModelRun.R")
+
+for (file in files) {
+  source(file)
+}
 
 ## PART ZERO: SET UP ####
 # make the experiment directory
@@ -40,40 +42,52 @@ plotBehaviouralSamples(selectedBehaviours, formatted_data, Experiment_path)
 # create the behaviour labels for this round
 relabelled_data <- relabel_activities(formatted_data, relabelledBehaviours)
 relabelled_data <- relabelled_data[relabelled_data$activity != "NA", ]
-#relabelled_data <- formatted_data
+#relabelled_data <- formatted_data[1:1000,]
 
   
 ## PART ONE: MODEL SELECTION ####  
 # Process data, run models, and save to the same csv
-  for (window_length in window) {
-    for (overlap_percent in overlap) {
-      # Process data
-      processed_data <- process_data(relabelled_data, featuresList, window_length, overlap_percent)
-        
-      for (split in splitMethod) {
-          # Split data
-          list_train_test <- split_condition(processed_data, modelArchitecture, threshold, split, trainingPercentage, validationPercentage, test_individuals, good_individuals)
-          trDat <- na.omit(list_train_test$train)
-          valDat <- na.omit(list_train_test$validate)
-          tstDat <- na.omit(list_train_test$test)
-          
-          #if ("RF" %in% modelArchitecture) {
-            for (trees_number in ntree_list) {
-              # Train and Test Random Forest Model
-              rf_model <- train_rf_model(trDat, trees_number)
-              test_predictions <- predict_rf_model(rf_model, valDat)
-              metrics_df <- evaluate_rf_model(test_predictions, valDat, targetBehaviours)
-              
-              summary_df <- save_rf_model(
-                rf_model, metrics_df, ExperimentNumber, test_individuals, 
-                desired_Hz, selectedBehaviours, featuresList, threshold, window_length, 
-                overlap_percent, split, trees_number, summary_file_path
-              )
-        }
-      }
+# running in parallel
+results <- foreach(window_length = window, overlap_percent = overlap, .combine = 'rbind') %dopar% {
+  # Process data
+  processed_data <- process_data(relabelled_data, featuresList, window_length, overlap_percent)
+  
+  results_list <- list()
+  
+  for (split in splitMethod) {
+    # Split data
+    list_train_test <- split_condition(processed_data, modelArchitecture, threshold, split, 
+                                       trainingPercentage, validationPercentage, test_individuals, 
+                                       good_individuals)
+    trDat <- na.omit(list_train_test$train)
+    valDat <- na.omit(list_train_test$validate)
+    tstDat <- na.omit(list_train_test$test)
+    
+    for (trees_number in ntree_list) {
+      # Train and Test Random Forest Model
+      rf_model <- train_rf_model(trDat, trees_number)
+      test_predictions <- predict_rf_model(rf_model, valDat)
+      metrics_df <- evaluate_rf_model(test_predictions, valDat, targetBehaviours)
+      
+      summary_df <- save_rf_model(
+        rf_model, metrics_df, ExperimentNumber, test_individuals, 
+        desired_Hz, selectedBehaviours, featuresList, threshold, window_length, 
+        overlap_percent, split, trees_number, summary_file_path
+      )
+      
+      results_list <- c(results_list, summary_df)
     }
   }
-#}
+  
+  return(results_list)
+}
+
+# Combine results
+final_results <- do.call(rbind, results)
+
+# Stop the cluster
+stopCluster(cl)
+
 
   
 ## PART TWO: OPTIMAL MODEL ####  
@@ -83,12 +97,27 @@ optimal_overlap <- 0
 optimal_split <- "SparkesKoalaValidation"
 optimal_ntree <- 100
 optimal_threshold <- 4000
+test_type <- "test"
+probabilityReport <- FALSE
+probabilityThreshold <- 0.5
+desired_Hz <- 100
 
-#create dataasets
+#create select the dataset you want to use
 relabelled_data <- formatted_data
-processed_data <- process_data(relabelled_data, featuresList, optimal_window, optimal_overlap)
 
+# run the whole process... note that there is parallel procesing inside the function
+optimal_results <- verify_optimal_results(
+  formatted_data, featuresList, optimal_window, optimal_overlap, desired_Hz, optimal_split, optimal_ntree, 
+  optimal_threshold, trainingPercentage, validationPercentage, test_individuals, good_individuals,
+  test_type, probabilityReport, probabilityThreshold)
 
+print(optimal_results$confusion_matrix)
+print(optimal_results$confusion_plot)
+print(optimal_results$stacked_plot)
+print(optimal_results$NA_loss_plot)
+print(optimal_results$metrics)
+
+## BONUS ####
 # look at the feature information
 key_behaviours <- c("Groom", "Walk", "Branch", "Bound", "Trot")
 # temporarily relabel for visuals
@@ -99,25 +128,3 @@ processed_data2 <- processed_data %>%
 
 extractFeatureInformation(processed_data2, key_behaviours, 7) # go here and look at the function
 
-# get the training and testing data
-list_train_test <- split_condition(processed_data, modelArchitecture, optimal_threshold, 
-                                   optimal_split, trainingPercentage, validationPercentage, 
-                                   test_individuals, good_individuals)
-trDat <- na.omit(list_train_test$train)
-valDat <- na.omit(list_train_test$validate)
-tstDat <- na.omit(list_train_test$test)
-randomised_tstDat <- tstDat
-randomised_tstDat$activity <- randomised_tstDat$activity[sample(nrow(randomised_tstDat))]
-
-# train model
-rf_model <- train_rf_model(trDat, optimal_ntree)
-
-# check it
-probabilityReport <- FALSE
-probabilityThreshold <- 0.5
-testReturns <- test_optimal_model(rf_model, tstDat, probabilityReport, probabilityThreshold)
-
-print(testReturns$plot_pred_act)
-print(testReturns$confusion_plot)
-print(testReturns$plot_stacked)
-print(testReturns$metrics)
