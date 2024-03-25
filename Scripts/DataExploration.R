@@ -33,9 +33,12 @@ exploreData <- function(Experiment_path, formatted_data, ignoreBehaviours) {
   ggsave(file.path(Experiment_path, "behaviourIndividualDistribution.png"), plot = behaviourIndividualDistribution)
 }
 
+formatted_data <- formatted_data %>%
+  filter(ID %in% c("Elsa", "Meeka"))
+
 
 # PART TWO: DISPLAYING SAMPLES OF EACH TRACE TYPE ####
-plotBehaviouralSamples <- function(behaviourList, formatted_data, Experiment_path, n_samples) {
+plot_behaviours <- function(behaviourList, formatted_data, Experiment_path, n_samples, n_col) {
   # Function to create the plot for each behavior
   plot_behaviour <- function(behaviour, n_samples) {
     df <- formatted_data %>%
@@ -61,16 +64,169 @@ plotBehaviouralSamples <- function(behaviourList, formatted_data, Experiment_pat
   plots <- purrr::map(behaviourList, ~ plot_behaviour(.x, n_samples))
   
   # Combine plots into a single grid
-  grid_plot <- cowplot::plot_grid(plotlist = plots, ncol = length(plots)/2)
+  grid_plot <- cowplot::plot_grid(plotlist = plots, ncol = n_col)
   
   # Save the grid plot
-  ggsave(file.path(Experiment_path, "behaviours_grid_plot.png"), plot = grid_plot)
+  #ggsave(file.path(Experiment_path, "behaviours_grid_plot.png"), plot = grid_plot)
+  
+  return(grid_plot)
+}
+
+# looking at feature information
+extractFeatureInformation <- function(processed_data, key_behaviours, number_columns){
+  summary <- processed_data %>%
+    filter(activity %in% key_behaviours) %>%
+    group_by(activity, ID) %>%
+    summarise(across(where(is.numeric), 
+                     list(max = ~max(.), min = ~min(.), mean = ~mean(.), var = ~var(.)),
+                     .names = "{col}_{fn}"))
+  
+  
+  my_colours <- c("#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#e49e18", 
+                  "#ffd92f", "#e5c494", "#b3b3b3", "#ff69b4", "#ba55d3", "#3fd7af")
+  
+  
+  numeric_cols <- colnames(processed_data)[!colnames(processed_data) %in% c("activity", "ID")]
+  numeric_cols <- numeric_cols[numeric_cols != "time"]
+  #selected_cols <- grep("X", numeric_cols, value = TRUE)
+  #selected_cols <- grep("accel", numeric_cols, value = TRUE)
+  selected_cols <- numeric_cols 
+  
+  plots <- list()
+  
+  # Loop over each numeric column and create a plot
+  for (col in selected_cols) {
+    p <- ggplot(summary, aes_string(x = "activity", y = paste0(col, "_mean"), color = "as.factor(ID)")) +
+      geom_point(position = position_jitterdodge(jitter.width = 0.2), size = 3) +
+      geom_errorbar(aes_string(ymin = paste0(col, "_min"), ymax = paste0(col, "_max")),
+                    position = position_jitterdodge(jitter.width = 0.2),
+                    width = 0.4) +
+      labs(title = paste(col)) +
+      scale_color_manual(values = my_colours, name = "ID") +
+      theme_minimal() +
+      theme(legend.position = "none",
+            axis.line = element_blank(),
+            axis.title.x = element_blank(),
+            axis.title.y = element_blank(),
+            axis.text.y = element_blank(),  # Remove y-axis labels
+            panel.border = element_rect(color = "black", fill = NA),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            text = element_text(size = 8))
+    
+    plots[[col]] <- p
+  }
+  
+  # Combine all plots into a single image
+  multiplot <- do.call(gridExtra::grid.arrange, c(plots, ncol = number_columns))
+  
+  return(activityPlot = multiplot)
+}
+
+
+# similar to above but more detailed
+plotFeatureInformation <- function(processed_data, key_behaviours, number_columns){
+  reduced_data <- processed_data %>%
+    filter(activity %in% key_behaviours)
+  
+  my_colours <- c("#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#e49e18", 
+                  "#ffd92f", "#e5c494", "#7a42f4", "#ff69b4", "#ba55d3", "#3fd7af")
+  
+  numeric_cols <- colnames(processed_data)[!colnames(processed_data) %in% c("activity", "ID")]
+  numeric_cols <- numeric_cols[numeric_cols != "time"]
+  selected_cols <- grep("X", numeric_cols, value = TRUE)
+  selected_cols <- grep("accel", selected_cols, value = TRUE)
+  selected_cols <- selected_cols 
+  
+  plots <- list()
+  
+  # Loop over each numeric column and create a plot
+  for (col in selected_cols) {
+    p <- ggplot(reduced_data, aes_string(x = "activity", y = paste0(col), color = "as.factor(ID)")) +
+      geom_point(position = position_jitterdodge(jitter.width = 0.1), size = 3, alpha = 0.5) +
+      labs(title = paste(col)) +
+      scale_color_manual(values = my_colours, name = "ID") +
+      theme_minimal() +
+      theme(legend.position = "none",
+            axis.line = element_blank(),
+            axis.title.x = element_blank(),
+            axis.title.y = element_blank(),
+            axis.text.y = element_blank(),
+            panel.border = element_rect(color = "black", fill = NA),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            text = element_text(size = 8))
+    
+    plots[[col]] <- p
+  }
+  
+  # Create a separate plot for the legend
+  legend_plot <- ggplot(reduced_data, aes(x = "activity", fill = as.factor(ID))) + 
+    geom_bar() +
+    scale_fill_manual(values = my_colours, name = "ID")
+  leg <- get_legend(legend_plot)
+  leg <- as_ggplot(leg)
+  
+  # Combine all plots into a single image
+  multiplot <- do.call(gridExtra::grid.arrange, c(plots[selected_cols], ncol = number_columns))
+  multiplot_legend <- cowplot::plot_grid(multiplot, leg, ncol = 2, rel_widths = c(1, 0.2))
+  
+  return(multiplot_legend)
 }
 
 
 
 
-# just to make one specific behaviour
-n_samples <- 10000
-purrr::map("Walking", ~ plot_behaviour(.x, n_samples))
-
+# plotting the behaviours over the top of eachother
+plotFeatureFrequency <- function(processed_data, key_behaviours, number_columns){
+  reduced_data <- processed_data %>%
+    filter(activity %in% key_behaviours)
+  
+  my_colours <- c("#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#e49e18", 
+                  "#ffd92f", "#e5c494", "#7a42f4", "#ff69b4", "#ba55d3", "#3fd7af")
+  
+  numeric_cols <- colnames(processed_data)[!colnames(processed_data) %in% c("activity", "ID")]
+  numeric_cols <- numeric_cols[numeric_cols != "time"]
+  #selected_cols <- grep("X", numeric_cols, value = TRUE)
+  selected_cols <- grep("gyro", numeric_cols, value = TRUE)
+  selected_cols <- selected_cols 
+  
+  reduced_data <- reduced_data %>% # make it numeric
+    mutate(across(all_of(selected_cols), as.numeric))
+  
+  plots <- list()
+  
+  # Loop over each numeric column and create a plot
+  for (col in selected_cols) {
+    #col <- selected_cols[1]
+    p <- ggplot(reduced_data, aes_string(x = paste0(col), color = "as.factor(activity)")) +
+      geom_freqpoly(aes(y = ..density..), binwidth = 0.2, linewidth = 1) +
+      labs(title = paste(col)) +
+      scale_color_manual(values = my_colours, name = "ID") +
+      theme_minimal() +
+      theme(legend.position = "none",
+            axis.line = element_blank(),
+            axis.title.x = element_blank(),
+            axis.title.y = element_blank(),
+            axis.text.y = element_blank(),
+            panel.border = element_rect(color = "black", fill = NA),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            text = element_text(size = 5))
+    
+    plots[[col]] <- p
+  }
+  
+  # Create a separate plot for the legend
+  legend_plot <- ggplot(reduced_data, aes(x = "activity", fill = as.factor(activity))) + 
+    geom_bar() +
+    scale_fill_manual(values = my_colours, name = "ID")
+  leg <- get_legend(legend_plot)
+  leg <- as_ggplot(leg)
+  
+  # Combine all plots into a single image
+  multiplot <- do.call(gridExtra::grid.arrange, c(plots[selected_cols], ncol = number_columns))
+  multiplot_frequency <- cowplot::plot_grid(multiplot, leg, ncol = 2, rel_widths = c(1, 0.1))
+  
+  return(multiplot_frequency)
+}

@@ -96,7 +96,7 @@ compute_features <- function(window_chunk, featuresList) {
 
 
 
-process_data <- function(formatted_data, featuresList, window_length, overlap, desired_Hz) {
+process_data <- function(formatted_data, featuresList, window_length, overlap_percent, desired_Hz) {
   # this section will be done with parallel processing
   
   # activate the cores
@@ -110,7 +110,7 @@ process_data <- function(formatted_data, featuresList, window_length, overlap, d
   window_samples <- window_length * desired_Hz
   
   # Calculate overlap size in samples
-  overlap_samples <- if (overlap > 0) (overlap / 100) * window_samples else 0
+  overlap_samples <- if (overlap_percent > 0) (overlap_percent / desired_Hz) * window_samples else 0
   
   # Initialize an empty list to store the processed data chunks
   processed_windows <- foreach(st = seq(1, nrow(formatted_data), by = window_samples - overlap_samples),
@@ -135,54 +135,3 @@ process_data <- function(formatted_data, featuresList, window_length, overlap, d
   
   return(processed_data)
 }
-
-extractFeatureInformation <- function(processed_data, key_behaviours, number_columns){
-  summary <- processed_data %>%
-    filter(activity %in% key_behaviours) %>%
-    group_by(activity, ID) %>%
-    summarise(across(where(is.numeric), 
-                     list(max = ~max(.), min = ~min(.), mean = ~mean(.), var = ~var(.)),
-                     .names = "{col}_{fn}"))
-  
-  
-  my_colours <- c("#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#e49e18", 
-                  "#ffd92f", "#e5c494", "#b3b3b3", "#ff69b4", "#ba55d3", "#3fd7af")
-  
-  
-  numeric_cols <- colnames(processed_data)[!colnames(processed_data) %in% c("activity", "ID")]
-  numeric_cols <- numeric_cols[numeric_cols != "time"]
-  #selected_cols <- grep("X", numeric_cols, value = TRUE)
-  #selected_cols <- grep("accel", numeric_cols, value = TRUE)
-  selected_cols <- numeric_cols 
-  
-  plots <- list()
-  
-  # Loop over each numeric column and create a plot
-  for (col in selected_cols) {
-    p <- ggplot(summary, aes_string(x = "activity", y = paste0(col, "_mean"), color = "as.factor(ID)")) +
-      geom_point(position = position_jitterdodge(jitter.width = 0.2), size = 3) +
-      geom_errorbar(aes_string(ymin = paste0(col, "_min"), ymax = paste0(col, "_max")),
-                    position = position_jitterdodge(jitter.width = 0.2),
-                    width = 0.4) +
-      labs(title = paste(col)) +
-      scale_color_manual(values = my_colours, name = "ID") +
-      theme_minimal() +
-      theme(legend.position = "none",
-            axis.line = element_blank(),
-            axis.title.x = element_blank(),
-            axis.title.y = element_blank(),
-            axis.text.y = element_blank(),  # Remove y-axis labels
-            panel.border = element_rect(color = "black", fill = NA),
-            panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank(),
-            text = element_text(size = 8))
-    
-    plots[[col]] <- p
-  }
-  
-  # Combine all plots into a single image
-  multiplot <- do.call(gridExtra::grid.arrange, c(plots, ncol = number_columns))
-  
-  return(activityPlot = multiplot)
-}
-

@@ -6,7 +6,7 @@ source("Balancing.R")
 split_condition <- function(processed_data, modelArchitecture, threshold, split, 
                             trainingPercentage, validationPercentage, test_individuals, good_individuals) {
   
-  dat <- processed_data %>% na.omit()
+  dat <- processed_data# %>% na.omit()
   dat <- balance_data(dat, threshold)
   
   remove_columns <- function(df) {

@@ -16,7 +16,7 @@ plot_confusion <- function(confusion_matrix) {
   
   # Create confusion matrix plot
   confusion_plot <- ggplot(conf_df, aes(y = Predicted, x = Actual, fill = Result, alpha = Count_norm)) +
-    geom_tile(color = "white", size = 1) +
+    geom_tile(color = "white", linewidth = 1) +
     scale_fill_manual(values = c("FALSE" = "salmon", "TRUE" = "steelblue", "NA" = "white"), na.value = "white") +
     scale_alpha_continuous(range = c(0.1, 1)) +  
     theme_minimal() +

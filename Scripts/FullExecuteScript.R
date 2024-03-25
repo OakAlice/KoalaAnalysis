@@ -10,7 +10,7 @@ setwd("C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Scripts") # scripts locatio
 
 # source each of the functions from other scripts
 files <- c("UserInput.R", "ReformattingData.R", "CombiningBehaviours.R", 
-           "GeneralFunctions.R", "FeatureProcessing.R", 
+           "GeneralFunctions.R", "FeatureProcessing.R",
            "SplitData.R", "RandomForest.R", "OptimalModelRun.R") # "DataExploration.R"
 for (file in files) {
   source(file)
@@ -32,7 +32,10 @@ formatted_data <- format_movement_data(MoveData0, columnSubset, test_individuals
 
 # explore # graphs will print to the Experiment directory
 exploreData(Experiment_path, formatted_data, ignoreBehaviours)
-#plotBehaviouralSamples(selectedBehaviours, formatted_data, Experiment_path)
+
+key_behaviours <- c("Grooming", "Walking", "Branch Walking")
+behaviourList <- key_behaviours
+plot_behaviours(selectedBehaviours, formatted_data, Experiment_path, 1000, 2)
   
 # create the behaviour labels for this round
 relabelled_data <- relabel_activities(formatted_data, relabelledBehaviours)
@@ -67,6 +70,8 @@ for (window_length in window) {
           desired_Hz, selectedBehaviours, featuresList, threshold, window_length, 
           overlap_percent, split, trees_number, summary_file_path
         )
+      print(window_length, overlap_percent, split, trees_number)  
+        
       }
     }
   }
@@ -82,12 +87,12 @@ optimal_split <- "SparkesKoalaValidation"
 optimal_ntree <- 100
 optimal_threshold <- 4000
 test_type <- "test"
-probabilityReport <- FALSE
+probabilityReport <- TRUE
 probabilityThreshold <- 0.5
-desired_Hz <- 100
+desired_Hz <- 30
 
 #create select the dataset you want to use
-relabelled_data <- formatted_data
+#relabelled_data <- formatted_data
 
 # run the whole process... note that there is parallel procesing inside the function
 optimal_results <- verify_optimal_results(
