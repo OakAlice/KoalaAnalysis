@@ -73,4 +73,7 @@ source("Dictionaries.R")
   # hyperparamters ### need to make this with multiple versions
   #data_presentations <- c(100, 200) # for the SOM
   ntree_list <- c(100, 200, 500, 1000) # for RF
+  
+## PREDICTION ####
+summarisation_window <- 1 # in minutes
 

@@ -56,10 +56,59 @@ predictingUnlabelled <- function(processed_file, OptimalMLModel){
 }
 
 
-predictionsFile <- function(predictions){
+# Summarise into behaviour windows ####
+summarise <- function(predict_file, summarisation_window) {
+  # Convert timestamp to POSIXct format
+  predict_file$timestamp <- as.POSIXct(predict_file$time, format = "%Y-%m-%d %H:%M:%S")
   
+  # Calculate the start and end times for each summarisation window
+  predict_file <- predict_file %>%
+    mutate(window_start = floor_date(timestamp, unit = paste(summarisation_window, "min")),
+           window_end = ceiling_date(timestamp, unit = paste(summarisation_window, "min")))
   
+  # Group data by summarisation window and activity
+  summarised_data <- predict_file %>%
+    group_by(window_start, window_end, activity_predictions) %>%
+    mutate(count = n()) %>%
+    arrange(window_start, window_end, desc(count)) %>%
+    group_by(window_start, window_end) %>%
+    slice(1) %>%
+    ungroup()
+  
+  summarised_data$timestamp <- format(summarised_data$window_start, "%H:%M:%S")
+  summarised_data$day <- as.Date(summarised_data$window_start)
+  summarised_data <- summarised_data %>% select(-c(window_start, window_end, count))
+  
+  return(summarised_data)
 }
 
 
 
+behaviour_grid <- function(prediction_outcome){
+  
+  ## VISUALISE IT
+  custom_palette <- c("#ff69b4", "#ba55d3", "#8da0cb", "#66c2a5", "#3A7C75", "#f08080", "#ffa07a", "#cd5c5c", "#e78ac3", "#e5c494", "#ffd92f", "#fc8d62")
+  
+  # order them so midnight is in the middle
+  before_midnight <- sort(unique(prediction_outcome$timestamp[prediction_outcome$timestamp < "12:00:00"]))
+  after_midnight <- sort(unique(prediction_outcome$timestamp[prediction_outcome$timestamp >= "12:00:00"]))
+  ordered_timestamps <- c(after_midnight, before_midnight)
+  prediction_outcome$timestamps <- factor(prediction_outcome$timestamp, levels = ordered_timestamps)
+  
+  # plot it
+  p <- ggplot(prediction_outcome, aes(x = timestamps, y = day, fill = activity_predictions)) + 
+    geom_tile() +
+    scale_fill_manual(values = custom_palette) +
+    labs(y = "Day", x = "Timestamp", fill = "Activity") +
+    scale_x_discrete(breaks = ordered_timestamps[seq(1, length(ordered_timestamps), by = 240)]) +
+    scale_y_date(breaks = unique(prediction_outcome$day))+
+    theme_minimal() + 
+    theme(
+      axis.text.x = element_text(angle = 0, hjust = 0, vjust = 0.5), 
+      axis.line = element_blank(),
+      panel.grid = element_blank(),
+      panel.border = element_rect(colour = "black", fill = NA, linewidth = 1.5)
+    )
+  
+  return (p)
+}

@@ -3,14 +3,14 @@
 
 library(pacman)
 p_load(dplyr, tidyverse, randomForest, ggpubr, caret, e1071, kohonen, 
-       WaveletComp, cluster, purrr, cowplot, scales, crqa, pracma, doParallel,
-       foreach)
+       WaveletComp, purrr, cowplot, scales, crqa, pracma, doParallel,
+       foreach, parallel, parallelly)
 
 setwd("C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Scripts") # scripts location
 
 # source each of the functions from other scripts
 files <- c("UserInput.R", "ReformattingData.R", "CombiningBehaviours.R", 
-           "GeneralFunctions.R", "FeatureProcessing.R",
+           "GeneralFunctions.R", "FeatureProcessing.R", "UnlabelledData.R",
            "SplitData.R", "RandomForest.R", "OptimalModelRun.R") #, "DataExploration.R")
 for (file in files) {
   source(file)
@@ -37,7 +37,7 @@ tryCatch({
   # format
   
   ### MOVE THIS #### Put it in the loop
-  formatted_data <- format_movement_data(MoveData0, columnSubsetTraining, test_individuals, 20, 100, selectedBehaviours, ExperimentNumber)
+  formatted_data <- format_movement_data(MoveData0, columnSubsetTraining, test_individuals, 50, 100, selectedBehaviours, ExperimentNumber)
   
   # explore # graphs will print to the Experiment directory
   #exploreData(Experiment_path, formatted_data, ignoreBehaviours)
@@ -50,7 +50,7 @@ tryCatch({
 # Process data, run models, and save to the same csv
 for (behaviourset in relabelledBehaviours){
   # create the behaviour labels for this round
-  # behaviourset <- relabelledBehaviours[3]
+  # behaviourset <- relabelledBehaviours[2]
   behaviours <- MovementData[[behaviourset]]
   relabelled_data <- relabel_activities(formatted_data, behaviours)
   relabelled_data <- relabelled_data[relabelled_data$activity != "NA", ]
@@ -103,7 +103,7 @@ optimal_threshold <- 4000
 test_type <- "test"
 probabilityReport <- FALSE
 probabilityThreshold <- 0.5
-optimal_Hz <- 100
+optimal_Hz <- 50
 
 
 
@@ -130,42 +130,46 @@ OptimalMLModel <- optimal_results$trained_model
 # chunked folder
 folders <- list.dirs(MovementData$Unlabelled_location, full.names = FALSE, recursive = FALSE)
 
-for (folder in folders){
-  #folder <- folders[1]
+current_Hz <- 50
+optimal_Hz <- 50
+
+prediction_outcome <- data.frame()
+
+for (folder in folders) {
+  files <- list.files(file.path(MovementData$Unlabelled_location, folder), full.names = TRUE, recursive = FALSE)
   
-  files <- list.files(paste0(MovementData$Unlabelled_location, "/", folder), full.names = TRUE, recursive = FALSE)
-  
-  for (file in files){
-    # file <- files[1]
+  for (file in files) {
     unlabelled_file <- read.csv(file)
     formatted_file <- formattingUnlabelled(unlabelled_file, columnSubsetUnlabelled, current_Hz, optimal_Hz, columnSubsetTraining)
-    
     processed_file <- process_data(formatted_file, featuresList, optimal_window, optimal_overlap, optimal_Hz)
-    
     predictions <- predictingUnlabelled(processed_file, OptimalMLModel)
+    
+    # recombine with details
     activity_predictions <- predictions$activity_predictions
     details <- predictions$details
-    
     predict_file <- cbind(activity_predictions, details)
-    predict_file$day <- as.Date(predict_file$time)
-    predict_file$hour <- hour(predict_file$time)
+    
+    # summarise per timevalue
+    summarised_predictions <- summarise(predict_file, summarisation_window)
 
+    # append to document
+    prediction_outcome <- rbind(predict_file, prediction_outcome)
   }
 }
 
-## VISUALISE IT
-# smaller time sample
-p <- ggplot(predict_file, aes(x = time, y =day, fill = activity_predictions)) + 
-  geom_tile() +
-  labs(y = "Day", x = "Timestamp", fill = "Behaviour") +
-  theme_minimal() + 
-  theme(
-    axis.text.x = element_text(angle = 0, hjust = 0, vjust = 0.5), 
-    axis.line = element_blank(),
-    panel.grid = element_blank(),
-    panel.border = element_rect(colour = "black", fill = NA, linewidth = 1.5)
-  )
-p
+
+#  prediction_outcome <- summarise(prediction_outcome, 1)
+
+# save it
+prediction_file_path <- file.path(Experiment_path, 'Predictions.csv')
+write.table(prediction_outcome, file = prediction_file_path, sep = ",", row.names = FALSE, col.names = TRUE, append = FALSE, quote = FALSE)
+# plot it
+grid_plot <- behaviour_grid(prediction_outcome)
+
+
+
+
+
 
 
 
