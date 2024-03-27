@@ -30,33 +30,58 @@ compute_features <- function(window_chunk, featuresList) {
   
   result <- data.frame(row.names = 1)
   
-  # Compute statistics for each axis
   for (axis in available_axes) {
-    axis_data <- window_chunk[[axis]]
-    result[paste0("mean_", axis)] <- mean(axis_data)
-    result[paste0("max_", axis)] <- max(axis_data)
-    result[paste0("min_", axis)] <- min(axis_data)
-    result[paste0("sd_", axis)] <- sd(axis_data)
-    result[paste0("sk_", axis)] <- e1071::skewness(axis_data, na.rm = TRUE)
-    result[paste0("RMS_", axis)] <- sqrt(abs(mean(axis_data, na.rm = TRUE)))
-    result[paste0("auto_", axis)] <- calculate_autocorrelation(axis_data, 20)
-    result[paste0("entropy_", axis)] <- calculate_entropy(axis_data)
-    result[paste0("zero_", axis)] <- calculate_zero_crossing(axis_data)
+    
+    # axis = "X_accel"
+    
+    if ("mean" %in% featuresList) {
+      result[paste0("mean_", axis)] <- mean(window_chunk[[axis]])
+    }
+    
+    if ("max" %in% featuresList) {
+      result[paste0("max_", axis)] <- max(window_chunk[[axis]])
+    }
+    
+    if ("min" %in% featuresList) {
+      result[paste0("min_", axis)] <- min(window_chunk[[axis]])
+    }
+    
+    if ("sd" %in% featuresList) {
+      result[paste0("sd_", axis)] <- sd(window_chunk[[axis]])
+    }
+    
+    if ("sk" %in% featuresList){
+      result[paste0("sk_", axis)] <- e1071::skewness(window_chunk[[axis]], na.rm = TRUE)
+    }
+    if ("entropy" %in% featuresList){
+      result[paste0("entropy_", axis)] <- calculate_entropy(window_chunk[[axis]])
+    }
+    if ("auto" %in% featuresList){
+      result[paste0("auto_", axis)] <- calculate_autocorrelation(window_chunk[[axis]])
+    }
+    if ("zero" %in% featuresList){
+      result[paste0("zero_", axis)] <- calculate_zero_crossing(window_chunk[[axis]])
+    }
   }
   
-  # Compute SMA, minODBA, maxODBA, minVDBA, maxVDBA
   accel_axes <- intersect(available_axes, c("X_accel", "Y_accel", "Z_accel"))
-  if (length(accel_axes) > 0) {
+  
+  if (length(accel_axes) > 0 && ("SMA" %in% featuresList)) {
     result$SMA <- sum(rowSums(abs(window_chunk[, accel_axes]))) / nrow(window_chunk)
+  }
+  
+  if (length(accel_axes) > 0 && ("minODBA" %in% featuresList || "maxODBA" %in% featuresList)) {
     ODBA <- rowSums(abs(window_chunk[, accel_axes]))
     result$minODBA <- min(ODBA)
     result$maxODBA <- max(ODBA)
+  }
+  
+  if (length(accel_axes) > 0 && ("minVDBA" %in% featuresList || "maxVDBA" %in% featuresList)) {
     VDBA <- sqrt(rowSums(window_chunk[, accel_axes]^2))
     result$minVDBA <- min(VDBA)
     result$maxVDBA <- max(VDBA)
   }
   
-  # Compute correlations
   if ("cor" %in% featuresList) {
     for (i in 1:(length(accel_axes) - 1)) {
       for (j in (i + 1):length(accel_axes)) {
@@ -85,8 +110,6 @@ compute_features <- function(window_chunk, featuresList) {
     }
   }
   
-  
-  # Add activity, ID, and time
   result$activity <- names(which.max(table(window_chunk$activity)))
   result$time <- window_chunk$time[1]
   result$ID <- window_chunk$ID[1]
@@ -94,10 +117,9 @@ compute_features <- function(window_chunk, featuresList) {
   return(result)
 }
 
-
-
-process_data <- function(formatted_data, featuresList, window_length, overlap_percent, desired_Hz) {
+process_data <- function(relabelled_data, featuresList, window_length, overlap_percent, desired_Hz) {
   # this section will be done with parallel processing
+  processed_windows <- list()
   
   # activate the cores
   num_cores <- detectCores()
@@ -110,13 +132,13 @@ process_data <- function(formatted_data, featuresList, window_length, overlap_pe
   window_samples <- window_length * desired_Hz
   
   # Calculate overlap size in samples
-  overlap_samples <- if (overlap_percent > 0) (overlap_percent / desired_Hz) * window_samples else 0
+  overlap_samples <- if (overlap_percent > 0) (ceiling(overlap_percent / desired_Hz)/10 * window_samples) else 0
   
   # Initialize an empty list to store the processed data chunks
-  processed_windows <- foreach(st = seq(1, nrow(formatted_data), by = window_samples - overlap_samples),
+  processed_windows <- foreach(st = seq(1, nrow(relabelled_data), by = (window_samples - overlap_samples)),
                                .combine = 'rbind') %dopar% {
-                                 fn <- min(st + window_samples - 1, nrow(formatted_data))
-                                 window_chunk <- formatted_data[st:fn, ]
+                                 fn <- min(st + window_samples - 1, nrow(relabelled_data))
+                                 window_chunk <- relabelled_data[st:fn, ]
                                  compute_features(window_chunk, featuresList)
                                }
   
@@ -124,14 +146,20 @@ process_data <- function(formatted_data, featuresList, window_length, overlap_pe
   stopCluster(cl)
   
   # Combine all the processed chunks into a single data frame
-  processed_data <- do.call(rbind, processed_windows)
-  processed_data <- data.frame(processed_data)
+  processed_data <- data.frame(processed_windows)
   
-  # Transpose the processed_data dataframe and rename the columns
-  transposed_data <- t(processed_data)
-  colnames(transposed_data) <- rownames(processed_data)
-  rownames(transposed_data) <- NULL
-  processed_data <- data.frame(transposed_data)
+  # normalisation,if selected
+  features_to_normalise <- setdiff(colnames(processed_data), c("time", "ID", "activity"))
+  if (Normalisation == "MinMaxScaling") {
+    # Normalize the selected columns
+    processed_data[features_to_normalise] <- lapply(processed_data[features_to_normalise], function(x) {
+      (x - min(x, na.rm = TRUE)) / (max(x, na.rm = TRUE) - min(x, na.rm = TRUE))
+    })
+  } else if (Normalisation == "Standarisation") {
+    processed_data[features_to_normalise] <- lapply(processed_data[features_to_normalise], function(x) {
+      (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE)
+    })
+  }
   
   return(processed_data)
 }

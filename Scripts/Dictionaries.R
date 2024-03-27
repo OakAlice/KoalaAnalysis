@@ -40,19 +40,20 @@ SparkesKoala <- list(
                     "GX" = "X_gyro", "GY" = "Y_gyro", "GZ" = "Z_gyro",
                     "ID" = "ID", "activity" = "activity"),
   time_format = "matlab",
-  behaviours_1 = c("Tree Sitting", "Sleeping/Resting", "Foraging/Eating",
+  behaviours_1 = list("Tree Sitting", "Sleeping/Resting", "Foraging/Eating",
                    "Shake", "Grooming", "Bellowing", "Branch Walking",
                    "Climbing Up", "Climbing Down", "Rapid Climbing", "Swinging/Hanging",
                    "Tree Movement", "Walking", "Trot", "Gallop", "Bound/Half-Bound",
                    "Ground Sitting"),
-  behaviours_2 = list(
-    "Inactive" = c("Tree Sitting", "Sleeping/Resting", "Ground Sitting"),
-    "Tree Movement" = c("Tree Movement", "Swinging/Hanging"),
-    "NA" = "Bellowing",
-    "NA" = "Shake",
-    "Climbing" = c("Climbing Down", "Climbing Up", "Rapid Climbing"),
-    "Walking" = c("Walking", "Trot", "Gallop", "Bound/Half-Bound")
-    ),
+  behaviours_2 = list("Inactive" = c("Tree Sitting", "Sleeping/Resting", "Ground Sitting"),
+                  "Tree Movement" = c("Tree Movement", "Swinging/Hanging"),
+                  "NA" = c("Bellowing", "Shake", "Branch Walking"),
+                  "Climbing" = c("Climbing Down", "Climbing Up", "Rapid Climbing"),
+                  "Walking" = c("Walking", "Trot", "Gallop", "Bound/Half-Bound")),
+  behaviours_3 = list("Inactive" = c("Tree Sitting", "Sleeping/Resting", "Ground Sitting"),
+                      "Tree Movement" = c("Tree Movement", "Swinging/Hanging", "Grooming", "Climbing Down", "Climbing Up", "Rapid Climbing"),
+                      "NA" = c("Bellowing", "Shake", "Branch Walking"),
+                      "Walking" = c("Walking", "Trot", "Gallop", "Bound/Half-Bound")),
   target_behaviour = c("Walking")
 )
 

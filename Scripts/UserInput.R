@@ -5,7 +5,7 @@ source("Dictionaries.R")
 
 ## SET UP ####
   # Experiment Number # for keeping track of your work
-  ExperimentNumber <- 8
+  ExperimentNumber <- 9
   
   # directory where everything is to be saved
   save_directory <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Redo"
@@ -16,11 +16,11 @@ source("Dictionaries.R")
 ## FORMATTING ####
   test_individuals <- MovementData$test_individuals
   current_Hz <- MovementData$current_hz
-  desired_Hz <- 100
+  desired_Hz <- c(20, 50, 100)
   columnSubset <- MovementData$column_subset
   timeFormat <- MovementData$time_format
   selectedBehaviours <- MovementData$behaviours_1
-  relabelledBehaviours <- MovementData$behaviours_2
+  relabelledBehaviours <- c("behaviours_1","behaviours_2", "behaviours_3")
   behaviour_options <- MovementData$behaviours_2
   ignoreBehaviours <- c("<NA>")
   targetBehaviours <- MovementData$target_behaviour
@@ -30,25 +30,21 @@ source("Dictionaries.R")
   
   # Balancing
   # Sampling Threshold
-  threshold <- c(4000)
-  
-  # up or down sampling 
-  balancing <- c("up", "down")
-
-  # Smoothing and normalisation
-  Smoothing <- c(TRUE, FALSE)
-  Normalisation <- c(TRUE, FALSE)
+  balancing_thresholds <- c(500, 1000, 2000, 4000)
   
   # Window length, in seconds
-  window <- c(1, 2)
+  window <- c(0.5, 1, 2)
   
   # Window overlap, as a decimal percentage # if <0, is overlapping
-  overlap <- c(0, 10, 20)
+  overlap <- c(0, 50)
   
   # Features to be calculated on every axis, select from following list: 
   # "mean", "max", "min", "sd", "sk", "cor", "SMA", "minODBA", "maxODBA", "minVDBA", "maxVDBA"
-  featuresList <- c("mean", "max", "min", "sd", "cor", "SMA", "minODBA", "maxODBA", "minVDBA", "maxVDBA",
-                    "RMS", "FFT", "auto", "entropy", "zero_crossing")
+  featuresList <- c("mean", "max", "min", "sd", "cor", "SMA", "minODBA", "maxODBA", "minVDBA", "maxVDBA", 
+                    "RMS", "FFT", "entropy", "zero_crossing")
+  
+  # Feature normalisation
+  Normalisation <- c(FALSE) # "MinMaxScaling", "Standardiation"
 
 
 ## VALIDATION ####
@@ -59,21 +55,21 @@ source("Dictionaries.R")
   good_individuals <- c("Elsa", "Meeka") # just for SparkesKoalaValidation 
   
   # stratify within the behaviours, pick from: TRUE, FALSE, or both
-  splitStratified <- c(TRUE, FALSE)
+  #splitStratified <- c(TRUE, FALSE)
   
   # Proportion of training data, as a decimal percentage
   trainingPercentage <- 0.6
-  validationPercentage <- 0.2
+  validationPercentage <- 0.4
   # testingPercentage is the remainder
 
 
 ## MODEL ARCHITECTURE ####
 # Model architecture, RF or SOM
   modelArchitecture <- "RF"
-  probabilityReport <- c(TRUE) # True or false
+  probabilityReport <- c(FALSE) # True or false
   probabilityThreshold <- 80 # as a percentage, above which accepted as true
   
   # hyperparamters ### need to make this with multiple versions
   #data_presentations <- c(100, 200) # for the SOM
-  ntree_list <- c(10, 50, 100, 150, 200) # for RF
+  ntree_list <- c(100, 200, 500, 1000) # for RF
 

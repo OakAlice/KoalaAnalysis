@@ -86,7 +86,7 @@ evaluate_rf_model <- function(test_predictions, tstDat, targetBehaviours = NULL)
 # PART FOUR: SAVE ALL THE RESULTS
 save_rf_model <- function(
     rf_model, metrics_df, ExperimentNumber, test_individuals, 
-    desired_Hz, selectedBehaviours, featuresList, threshold, window_length, 
+    frequency, num_behs, featuresList, threshold, window_length, 
     overlap_percent, split, trees, summary_file_path
 ) {
   # Extract model metrics
@@ -97,8 +97,8 @@ save_rf_model <- function(
   static_metrics <- list(
     ExperimentNumber = as.numeric(ExperimentNumber),
     TestIndividuals = as.numeric(test_individuals),
-    DesiredHz = as.numeric(desired_Hz),
-    numBehaviours = as.numeric(length(selectedBehaviours)),
+    DesiredHz = as.numeric(frequency),
+    numBehaviours = as.numeric(num_behs),
     NumFeatures = as.numeric(length(featuresList)),
     Balancing = as.numeric(threshold),
     WindowLength = as.numeric(window_length),
