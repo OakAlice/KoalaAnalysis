@@ -32,13 +32,17 @@ VerkjojaDog <- list(
 SparkesKoala <- list(
   name = "SparkesKoala",
   notes = "Gabby koala data",
-  data_location = "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/AllIndBalancedTrainingData.csv",
+  Training_location = "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/AllIndBalancedTrainingData.csv",
+  Unlabelled_location = "C:/Users/oakle/Documents/PhD docs/Honours Koala Data",
   test_individuals = 12, # only 2 with a lot of data
   current_hz = 100,
-  column_subset = c("Time" = "time", 
+  column_subset = c("Time" = "time",                                      # training data
                     "X" = "X_accel", "Y" = "Y_accel", "Z" = "Z_accel",
                     "GX" = "X_gyro", "GY" = "Y_gyro", "GZ" = "Z_gyro",
                     "ID" = "ID", "activity" = "activity"),
+  column_subset2 = c("V1" = "time",                                      # unlabelled data
+                    "V2" = "X_accel", "V3" = "Y_accel", "V4" = "Z_accel",
+                    "V5" = "X_gyro", "V6" = "Y_gyro", "V7" = "Z_gyro"),
   time_format = "matlab",
   behaviours_1 = list("Tree Sitting", "Sleeping/Resting", "Foraging/Eating",
                    "Shake", "Grooming", "Bellowing", "Branch Walking",

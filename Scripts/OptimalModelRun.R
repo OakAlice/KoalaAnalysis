@@ -199,7 +199,8 @@ verify_optimal_results <- function(data, featuresList, window_length, overlap_pe
   stacked <- plot_stacked(confusion_matrix, test_predictions, test_actual)
   metrics <- display_metrics(confusion_matrix)
   
-  testReturns <- list(confusion_matrix = confusion_matrix, 
+  testReturns <- list(trained_model = rf_model,
+                      confusion_matrix = confusion_matrix, 
                       confusion_plot = confusion_plot, 
                       stacked_plot = stacked$stacked_plot,
                       NA_loss_plot = stacked$Na_leftovers, 

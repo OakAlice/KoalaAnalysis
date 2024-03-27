@@ -22,9 +22,6 @@ handle_error <- function(e) {
 }
 
 ## PART ZERO: SET UP ####
-# Add a print statement to indicate progress
-print("Starting Part Zero: Set Up")
-
 # Add try-catch block to handle errors
 tryCatch({
   # make the experiment directory
@@ -35,11 +32,12 @@ tryCatch({
   summary_file_path <- file.path(Experiment_path, 'Summary.csv')
   
   # read in Data
-  MoveData0 <- read.csv(MovementData$data_location)
-  print("MoveData loaded")
+  MoveData0 <- read.csv(MovementData$Training_location)
   
   # format
-  formatted_data <- format_movement_data(MoveData0, columnSubset, test_individuals, desired_Hz, current_Hz, selectedBehaviours, ExperimentNumber)
+  
+  ### MOVE THIS #### Put it in the loop
+  formatted_data <- format_movement_data(MoveData0, columnSubsetTraining, test_individuals, 20, 100, selectedBehaviours, ExperimentNumber)
   
   # explore # graphs will print to the Experiment directory
   #exploreData(Experiment_path, formatted_data, ignoreBehaviours)
@@ -47,20 +45,18 @@ tryCatch({
 
 }, error = handle_error)  # Specify the error handling function
 
-## PART ONE: MODEL SELECTION ####  
-# Add a print statement to indicate progress
-print("Starting Part One: Model Selection")
+## PART ONE: MODEL SELECTION #### 
 
 # Process data, run models, and save to the same csv
-
 for (behaviourset in relabelledBehaviours){
   # create the behaviour labels for this round
+  # behaviourset <- relabelledBehaviours[3]
   behaviours <- MovementData[[behaviourset]]
   relabelled_data <- relabel_activities(formatted_data, behaviours)
   relabelled_data <- relabelled_data[relabelled_data$activity != "NA", ]
   num_behs <- length(unique(relabelled_data$activity))
 
-  for (frequency in desired_Hz){
+  for (frequency in downsampling_Hz){
     for (window_length in window) {
       for (overlap_percent in overlap) {
         # Process data
@@ -98,46 +94,78 @@ for (behaviourset in relabelledBehaviours){
   
 ## PART TWO: OPTIMAL MODEL ####  
 # select the optimal hyperparamters from the csv and create the model
-optimal_window <- 0.5
-optimal_overlap <- 50
+optimal_window <- 2
+optimal_overlap <- 10
 optimal_split <- "SparkesKoalaValidation"
+behaviourset <- relabelledBehaviours[2]
 optimal_ntree <- 500
-optimal_threshold <- 1000
+optimal_threshold <- 4000
 test_type <- "test"
 probabilityReport <- FALSE
 probabilityThreshold <- 0.5
-desired_Hz <- 100
+optimal_Hz <- 100
 
-#create select the dataset you want to use
-#relabelled_data <- formatted_data
+
+
+
+relabelled_data <- relabel_activities(formatted_data, MovementData[[behaviourset]])
+relabelled_data <- relabelled_data[relabelled_data$activity != "NA", ]
 
 # run the whole process... note that there is parallel procesing inside the function
 optimal_results <- verify_optimal_results(
-  relabelled_data, featuresList, optimal_window, optimal_overlap, desired_Hz, 
+  relabelled_data, featuresList, optimal_window, optimal_overlap, optimal_Hz, 
   optimal_split, optimal_ntree, optimal_threshold, trainingPercentage, validationPercentage, 
   test_individuals, good_individuals, test_type, probabilityReport, probabilityThreshold)
 
 print(optimal_results$confusion_matrix)
 print(optimal_results$confusion_plot)
 print(optimal_results$stacked_plot)
-print(optimal_results$NA_loss_plot)
+#print(optimal_results$NA_loss_plot)
 print(optimal_results$metrics)
 
+OptimalMLModel <- optimal_results$trained_model
 
+## PART THREE: APPLYING TO UNLABELLED DATA ####  
 
-# making a one-vs-all
-oneVall <- relabelled_data
-oneVall$activity <- ifelse(oneVall$activity == "Walking", "Walking", "Other")
-optimal_results <- verify_optimal_results(
-  oneVall, featuresList, optimal_window, optimal_overlap, desired_Hz, 
-  optimal_split, optimal_ntree, optimal_threshold, trainingPercentage, validationPercentage, 
-  test_individuals, good_individuals, test_type, probabilityReport, probabilityThreshold)
+# chunked folder
+folders <- list.dirs(MovementData$Unlabelled_location, full.names = FALSE, recursive = FALSE)
 
-print(optimal_results$confusion_matrix)
-print(optimal_results$confusion_plot)
-print(optimal_results$stacked_plot)
-print(optimal_results$NA_loss_plot)
-print(optimal_results$metrics)
+for (folder in folders){
+  #folder <- folders[1]
+  
+  files <- list.files(paste0(MovementData$Unlabelled_location, "/", folder), full.names = TRUE, recursive = FALSE)
+  
+  for (file in files){
+    # file <- files[1]
+    unlabelled_file <- read.csv(file)
+    formatted_file <- formattingUnlabelled(unlabelled_file, columnSubsetUnlabelled, current_Hz, optimal_Hz, columnSubsetTraining)
+    
+    processed_file <- process_data(formatted_file, featuresList, optimal_window, optimal_overlap, optimal_Hz)
+    
+    predictions <- predictingUnlabelled(processed_file, OptimalMLModel)
+    activity_predictions <- predictions$activity_predictions
+    details <- predictions$details
+    
+    predict_file <- cbind(activity_predictions, details)
+    predict_file$day <- as.Date(predict_file$time)
+    predict_file$hour <- hour(predict_file$time)
+
+  }
+}
+
+## VISUALISE IT
+# smaller time sample
+p <- ggplot(predict_file, aes(x = time, y =day, fill = activity_predictions)) + 
+  geom_tile() +
+  labs(y = "Day", x = "Timestamp", fill = "Behaviour") +
+  theme_minimal() + 
+  theme(
+    axis.text.x = element_text(angle = 0, hjust = 0, vjust = 0.5), 
+    axis.line = element_blank(),
+    panel.grid = element_blank(),
+    panel.border = element_rect(colour = "black", fill = NA, linewidth = 1.5)
+  )
+p
 
 
 

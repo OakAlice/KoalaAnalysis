@@ -16,8 +16,9 @@ source("Dictionaries.R")
 ## FORMATTING ####
   test_individuals <- MovementData$test_individuals
   current_Hz <- MovementData$current_hz
-  desired_Hz <- c(20, 50, 100)
-  columnSubset <- MovementData$column_subset
+  downsampling_Hz <- c(20, 50, 100)
+  columnSubsetTraining <- MovementData$column_subset
+  columnSubsetUnlabelled <- MovementData$column_subset2
   timeFormat <- MovementData$time_format
   selectedBehaviours <- MovementData$behaviours_1
   relabelledBehaviours <- c("behaviours_1","behaviours_2", "behaviours_3")
