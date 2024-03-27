@@ -1,28 +1,20 @@
 # Purpose
-R script and workflow for analysing data from the UQ koala project. I collected data for this project in my honours and it has subsequently been continued by Gabby in her PhD. I aim to create a user-friendly workflow that allows us to analyse and visualise our data. I have endeavoured to make it as transferable and generic as possible, but some of the scripts are unique to my necessary use-case (as a result of having collected realllllllyy bad data in my honours and specific goals).
+A user-friendly workflow for designing, tuning, and validating a supervised machine learning model for accelerometer behaviour detection. Originally developed for the analysis of the UQ koala project.
+
+NOTE: Thus far, only includes Random Forest, but will be expanded to encompass different kinds of models.
 
 # Variables
-This script can be used to produce a RF from any raw accelerometry data. You can adjust the degrees of freedom (i.e., axes), sampling rate, window length, window overlap, calculated features, selected behaviours, validation split, and hyperparameter grid search from a single script.
+You can adjust the degrees of freedom (i.e., axes), sampling rate, window length, window overlap, calculated features and normalisation, behavioural categories, validation split,  hyperparameter grid search from a single script and then test all possible combinations of these.
 
 # Scripts
 ## Master Scripts
 - Dicionaries.R -> Information from each dataset
 - UserInput.R -> Specifying the parameters you want to test
-- ExecuteScriptFull.R -> Run the script. Part 1 for model selection, part 2 for test on hold-out set
+- ExecuteScriptFull.R -> Run the script. Part 1 for model selection, part 2 for test on hold-out set, part 3 for application to unlabelled data.
 
-## Preprocessing
-- ReformattingData.R -> Reformat the data based on the user variables
-- GeneralFunctions.R -> Other stuff needed elsewhere
-- GeneratingFeatures.R -> Creating the features across all the data # TODO: add normalising and filtering
-- SplitData.R -> Split into the training, validation, and testing sets
-
-## Assess validity of behaviour labels
-- SOMClusters.R -> Use an unsupervised SOM to cluster the training data - calculate normalised mutual information to find optimal clusters # note, this literally is so bad. Don't know if code wrong or idea wrong
-
-## Model Application and Validation
-- RandomForest.R -> Apply Random forest training and validation # currently very basic, add more hyperparameter tuning
-- OptimalModelRun.R -> Generate plots for any model perofrmance
+## Processing
+There are a lot of scripts. I will write a better guide later, but for now, here is a basic schematic.
 
 ## Just for me
 - CleanTrainingData.R -> Cleaning and organising the training data from matlab to csv
-- DataExploration.R -> Also just messing around with the lizard data at this point
+- DataExploration.R -> Also just messing around at this point
