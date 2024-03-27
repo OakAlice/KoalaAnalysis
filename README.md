@@ -15,7 +15,7 @@ You can adjust the degrees of freedom (i.e., axes), sampling rate, window length
 ## Processing
 There are a lot of scripts. I will write a better guide later, but for now, here is a basic schematic.
 
-![Chapter 2 more detailed code workflow](https://github.com/OakAlice/KoalaAnalysis/assets/127095766/72bc0072-4d1f-4c81-b5f5-09a65c3de276)
+<img src="https://github.com/OakAlice/KoalaAnalysis/assets/127095766/72bc0072-4d1f-4c81-b5f5-09a65c3de276" width="50%">
 
 ## Just for me
 - CleanTrainingData.R -> Cleaning and organising the training data from matlab to csv
