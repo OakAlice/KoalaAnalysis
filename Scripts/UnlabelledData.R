@@ -7,7 +7,7 @@
   
 # PART ONE: PROCESSING THE RAW DATA ####
   
-formattingUnlabelled <- function(unlabelled_file, columnSubsetUnlabelled, current_Hz, optimal_Hz, columnSubset){
+formattingUnlabelled <- function(unlabelled_file, ID_name, columnSubsetUnlabelled, current_Hz, optimal_Hz, columnSubset){
   # select and rename the relevant columns
   MoveData <- subset_and_rename(unlabelled_file, columnSubsetUnlabelled)
 
@@ -30,8 +30,7 @@ formattingUnlabelled <- function(unlabelled_file, columnSubsetUnlabelled, curren
   }
   
   # add the ID column
-  # extract the name from the file name
-  # save as a column
+  MoveData$ID <- ID_name
 
   # return the data
   return(MoveData)
@@ -51,7 +50,10 @@ predictingUnlabelled <- function(processed_file, OptimalMLModel){
   
   activity_predictions <- predict(OptimalMLModel, unlabelled_predictors) # random forest
   
-  return (list(activity_predictions = activity_predictions,
+  predict_file <- cbind(activity_predictions, ID_details)
+  
+  return (list(predict_file = predict_file,
+              activity_predictions = activity_predictions,
               details = ID_details))
 }
 
@@ -112,3 +114,26 @@ behaviour_grid <- function(prediction_outcome){
   
   return (p)
 }
+
+
+
+
+#### PLOT THE UNLABELLED TRACE ####
+
+plotTrace <- function(combined_data){
+  
+  trace <- ggplot(combined_data, aes(x = time)) +
+    geom_line(aes(y = X_accel, color = "X_accel"), show.legend = FALSE) +
+    geom_line(aes(y = Y_accel, color = "Y_accel"), show.legend = FALSE) +
+    geom_line(aes(y = Z_accel, color = "Z_accel"), show.legend = FALSE) +
+    labs(x = "Time") +
+    scale_color_manual(values = c(X_accel = "red", Y_accel = "green", Z_accel = "blue"), guide = "none") +
+    theme_minimal() +
+    theme(panel.grid = element_blank())
+
+  return(trace)
+}
+  
+  
+  
+

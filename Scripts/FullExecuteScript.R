@@ -4,16 +4,16 @@
 library(pacman)
 p_load(dplyr, tidyverse, randomForest, ggpubr, caret, e1071, kohonen, 
        WaveletComp, purrr, cowplot, scales, crqa, pracma, doParallel,
-       foreach, parallel, parallelly)
+       foreach, parallel)
 
 setwd("C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Scripts") # scripts location
 
 # source each of the functions from other scripts
-files <- c("UserInput.R", "ReformattingData.R", "CombiningBehaviours.R", 
+scripts <- c("UserInput.R", "ReformattingData.R", "CombiningBehaviours.R", 
            "GeneralFunctions.R", "FeatureProcessing.R", "UnlabelledData.R",
            "SplitData.R", "RandomForest.R", "OptimalModelRun.R") #, "DataExploration.R")
-for (file in files) {
-  source(file)
+for (script in scripts) {
+  source(script)
 }
 
 # Function to handle errors and print messages
@@ -124,6 +124,8 @@ print(optimal_results$stacked_plot)
 print(optimal_results$metrics)
 
 OptimalMLModel <- optimal_results$trained_model
+model_file_path <- file.path(Experiment_path, "OptimalModel.rda")
+save(OptimalMLModel, file = model_file_path)
 
 ## PART THREE: APPLYING TO UNLABELLED DATA ####  
 
@@ -133,30 +135,33 @@ folders <- list.dirs(MovementData$Unlabelled_location, full.names = FALSE, recur
 current_Hz <- 50
 optimal_Hz <- 50
 
+OptimalMLModel <- load(model_file_path) # load it back in
+
 prediction_outcome <- data.frame()
 
 for (folder in folders) {
   files <- list.files(file.path(MovementData$Unlabelled_location, folder), full.names = TRUE, recursive = FALSE)
   
   for (file in files) {
+    #file <- files[1]
     unlabelled_file <- read.csv(file)
-    formatted_file <- formattingUnlabelled(unlabelled_file, columnSubsetUnlabelled, current_Hz, optimal_Hz, columnSubsetTraining)
+    
+    # extract the name
+    file_name <- basename(file)
+    ID_name <- str_extract(file_name, "(?<=_)(.*?)(?=_)")
+    
+    # organise
+    formatted_file <- formattingUnlabelled(unlabelled_file, ID_name, columnSubsetUnlabelled, current_Hz, optimal_Hz, columnSubsetTraining)
     processed_file <- process_data(formatted_file, featuresList, optimal_window, optimal_overlap, optimal_Hz)
     predictions <- predictingUnlabelled(processed_file, OptimalMLModel)
     
-    # recombine with details
-    activity_predictions <- predictions$activity_predictions
-    details <- predictions$details
-    predict_file <- cbind(activity_predictions, details)
-    
     # summarise per timevalue
-    summarised_predictions <- summarise(predict_file, summarisation_window)
+    summarised_predictions <- summarise(predict_file$predict_file, summarisation_window)
 
     # append to document
     prediction_outcome <- rbind(predict_file, prediction_outcome)
   }
 }
-
 
 #  prediction_outcome <- summarise(prediction_outcome, 1)
 
@@ -170,7 +175,17 @@ grid_plot <- behaviour_grid(prediction_outcome)
 
 
 
+### READ ALL CSVS INTO ONE FILE TO CHECK ORIENTATION ###
+folder_path <- file.path(MovementData$Unlabelled_location, "Rachel")
+combined_data <- bind_rows(lapply(list.files(folder_path, pattern = "\\.csv$", full.names = TRUE), read_csv))
+write_csv(combined_data, file.path(MovementData$Unlabelled_location, "Dave_full.csv"))
 
+#combined_data <- read.csv(file.path(MovementData$Unlabelled_location, "Rachel_full.csv"))
+combined_data <- formattingUnlabelled(combined_data, "Rachel", columnSubsetUnlabelled, 50, 0.01, columnSubsetTraining)
+
+plot_data <- combined_data[1:length(combined_data$time),]
+
+plotTrace(plot_data)
 
 
 
