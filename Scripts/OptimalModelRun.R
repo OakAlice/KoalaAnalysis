@@ -37,7 +37,10 @@ plot_stacked <- function(confusion_matrix, test_predictions, test_actual) {
   names(confusion_df) <- c("Actual", "Predicted", "Count")
   
   # Plot
-  custom_palette <- c("#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#ffd92f", "#e5c494", "#b3b3b3", "#ff69b4", "#ba55d3", "#cd5c5c", "#ffa07a", "#f08080", "#4682b4", "#20b2aa", "#3A7C75", "#00ff00")
+  custom_palette <- c("#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", 
+                      "#ffd92f", "#e5c494", "#b3b3b3", "#ff69b4", "#ba55d3", 
+                      "#cd5c5c", "#ffa07a", "#f08080", "#4682b4","#FF6347",
+                      "#3A7C75", "#00ff00", "#87CEEB", "#F4A460")
   alternative_plot <- ggplot(confusion_df, aes(x = Predicted, y = Count, fill = Actual)) +
     geom_bar(stat = "identity") +
     labs(x = "Predicted Activity",

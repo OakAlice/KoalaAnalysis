@@ -5,7 +5,7 @@ source("Dictionaries.R")
 
 ## SET UP ####
   # Experiment Number # for keeping track of your work
-  ExperimentNumber <- 9
+  ExperimentNumber <- 10
   
   # directory where everything is to be saved
   save_directory <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Redo"

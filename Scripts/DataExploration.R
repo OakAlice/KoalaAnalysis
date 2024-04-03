@@ -9,12 +9,11 @@ exploreData <- function(Experiment_path, formatted_data, ignoreBehaviours) {
   # summarise into a table
   labelledDataSummary <- formatted_data %>%
     filter(!activity %in% ignoreBehaviours) %>%
-    group_by(ID, activity) %>%
-    summarise(count = n())
+    count(ID, activity)
   
   # account for the HZ, convert to seconds
   labelledDataSummaryplot <- labelledDataSummary %>%
-    mutate(seconds = count/current_Hz)
+    mutate(seconds = n/current_Hz)
   
   # Plot the stacked bar graph
   behaviourIndividualDistribution <- ggplot(labelledDataSummaryplot, aes(x = activity, y = seconds, fill = ID)) +
@@ -32,10 +31,6 @@ exploreData <- function(Experiment_path, formatted_data, ignoreBehaviours) {
   # save the image
   ggsave(file.path(Experiment_path, "behaviourIndividualDistribution.png"), plot = behaviourIndividualDistribution)
 }
-
-formatted_data <- formatted_data %>%
-  filter(ID %in% c("Elsa", "Meeka"))
-
 
 # PART TWO: DISPLAYING SAMPLES OF EACH TRACE TYPE ####
 plot_behaviours <- function(behaviourList, formatted_data, Experiment_path, n_samples, n_col) {

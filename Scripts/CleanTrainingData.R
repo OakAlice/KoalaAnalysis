@@ -17,8 +17,8 @@ txt_to_csv_append <- function(input_dir, activity_key_path, output_file) {
     # Extract ID from filename
     #file_path <- file_paths[1]
     file_name <- basename(file_path)
-    ID <- sub(".*_([^.]+)\\.txt$", "\\1", file_name) # last word in string
-    #ID <- sub("^([^_]+)_.*\\.txt$", "\\1", file_name)# first word in string
+    #ID <- sub(".*_([^.]+)\\.txt$", "\\1", file_name) # last word in string
+    ID <- sub("^([^_]+)_.*\\.txt$", "\\1", file_name)# first word in string
     
     
     # Read the TXT file
@@ -26,13 +26,13 @@ txt_to_csv_append <- function(input_dir, activity_key_path, output_file) {
     training_data <- read_tsv(file_path, col_types = cols(
       Time = col_double(),
       X = col_double(),
-      #GX = col_double(),
+      GX = col_double(),
       Y = col_double(),
-      #GY = col_double(),
+      GY = col_double(),
       Z = col_double(),
-      #GZ = col_double(),
+      GZ = col_double(),
       Number = col_double()
-    ), col_names = c("Time", "X", "Y", "Z", "Number")) # "GX", "GY", "GZ"
+    ), col_names = c("Time", "X", "Y", "Z", "GX", "GY", "GZ", "Number")) # "GX", "GY", "GZ"
     
     # Add the ID column
     training_data$ID <- ID
@@ -58,47 +58,16 @@ txt_to_csv_append <- function(input_dir, activity_key_path, output_file) {
 }
 
 # Paths
-input_dir <- "C:/Users/oakle/Documents/PhD docs/Chapter_Three_Perentie/Training Data"
-output_file <- "C:/Users/oakle/Documents/PhD docs/Chapter_Three_Perentie/TrainingData3.csv"
-activity_key_path <- "C:/Users/oakle/Documents/PhD docs/Chapter_Three_Perentie/ActivityKey.csv"
+input_dir <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/Training_walks"
+output_file <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/Training_walks.csv"
+activity_key_path <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/Activity_key.csv"
 
 # Run the function
 labelled_data <- txt_to_csv_append(input_dir, activity_key_path, output_file)
 
 
 # select only some specific individuals
-filtered_data <- labelled_data[labelled_data$ID %in% c("Meeka", "Elsa"), ]
-
-
-playData <- read.csv(GabbyKoalaDataAll)
-ignoreBehaviours <- (NA)
-labelledDataSummary <- balance_data %>%
-  filter(!activity %in% ignoreBehaviours) %>%
-  group_by(ID, activity) %>%
-  summarise(count = n())
-
-# account for the HZ, convert to seconds
-labelledDataSummaryplot <- labelledDataSummary %>%
-  mutate(seconds = count/current_Hz)
-
-# Plot the stacked bar graph
-my_colours <- c("#66c2a5", "#7dc3a7", "#94c5a9", "#abc6ab", "#c2c8ad", "#d9c9af",
-               "#f0cbaf", "#e9c0aa", "#e2b6a5", "#dbac9f", "#d4a29a", "#cd9895")
-
-
-behaviourIndividualDistribution <- ggplot(labelledDataSummaryplot, aes(x = activity, y = seconds, fill = ID)) +
-  geom_bar(stat = "identity") +
-  labs(x = "Activity",
-       y = "Seconds") +
-  theme_minimal() +
-  scale_fill_manual(values = my_colours) +
-  theme(axis.line = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1),
-        panel.border = element_rect(color = "black", fill = NA),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
-
-
+#filtered_data <- labelled_data[labelled_data$ID %in% c("Meeka", "Elsa"), ]
 
 # balance it down so reasonable counts
 filtered_data <- playData %>%
@@ -117,7 +86,52 @@ write_csv(balance_data, output_file)
 
 
 
+### ADDING NEW DATA FOR GABBY ####
+# her original data
+original_path <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/AllIndBalancedTrainingData.csv"
+original <- read.csv(original_path)
+  # remove the bad behaviours
+  original <- original %>% filter(!(activity %in% c("Walking", "Bound/Half-Bound", "Trot", "Gallop")))
+  original <- original %>% select(-row_num)
+  
+# the new training data in a csv
+new_training_path <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/Training_walks.csv"
+new_training <- read.csv(new_training_path)
+  # rename the columns 
+  column_subset = c("Time" = "time",                                      # training data
+                  "X" = "X_accel", "Y" = "Y_accel", "Z" = "Z_accel",
+                  "GX" = "X_gyro", "GY" = "Y_gyro", "GZ" = "Z_gyro",
+                  "ID" = "ID", "Activity" = "activity")
+  new_training <- rename(new_training, !!!setNames(names(new_training), column_subset))
 
+# the new wild data is still as individual files
+wild_path <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/Wild_walks"
+activity_key_path <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/Activity_key.csv"
+  files <- list.files(wild_path, full.names = TRUE, pattern = "\\.csv$") # list all csv files in the directory
+  
+  wild_data <- data.frame()
+  
+  for (file in files) {
+    file1 <- read.csv(file, header = TRUE, col.names = c("time", "X_accel", "Y_accel", "Z_accel", "X_gyro", "Y_gyro", "Z_gyro", "activity")) # read in the csv file
+    ID <- sub("^([^_]+)_.*\\.csv$", "\\1", basename(file)) # extract the first word in the file as the ID column
+    file1$ID <- ID
+    wild_data <- rbind(wild_data, file1) # append the data to wild_data
+  }
+  # correct the activity labels into words
+  activity_key <- read_csv(activity_key_path, show_col_types = FALSE)
+  activity_key$activity <- activity_key$Number
+  activity_key <- activity_key %>% select(-Number)
+  wild_data <- left_join(wild_data, activity_key, by = "activity")
+  wild_data <- wild_data %>% select(-c("Activity.y", "Number", "activity"))
+  wild_data$activity <- wild_data$Activity.x
+  wild_data <- wild_data %>% select(-c("Activity.x"))
+
+# now feed them all together
+  NewTrainingData <- rbind(original, new_training, wild_data)
+
+unique(NewTrainingData$activity)
+output_file <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/FinalTrainingData.csv"
+write_csv(NewTrainingData, output_file)
 
 
 

@@ -105,12 +105,6 @@ probabilityReport <- FALSE
 probabilityThreshold <- 0.5
 optimal_Hz <- 50
 
-
-
-
-relabelled_data <- relabel_activities(formatted_data, MovementData[[behaviourset]])
-relabelled_data <- relabelled_data[relabelled_data$activity != "NA", ]
-
 # run the whole process... note that there is parallel procesing inside the function
 optimal_results <- verify_optimal_results(
   relabelled_data, featuresList, optimal_window, optimal_overlap, optimal_Hz, 
@@ -127,6 +121,10 @@ OptimalMLModel <- optimal_results$trained_model
 model_file_path <- file.path(Experiment_path, "OptimalModel.rda")
 save(OptimalMLModel, file = model_file_path)
 
+
+
+
+
 ## PART THREE: APPLYING TO UNLABELLED DATA ####  
 
 # chunked folder
@@ -135,11 +133,19 @@ folders <- list.dirs(MovementData$Unlabelled_location, full.names = FALSE, recur
 current_Hz <- 50
 optimal_Hz <- 50
 
-OptimalMLModel <- load(model_file_path) # load it back in
+load(model_file_path) # load it back in, comes as OptimalMLModel
 
 prediction_outcome <- data.frame()
 
 for (folder in folders) {
+  
+  # read them all into a single csv
+  folder_path <- file.path(MovementData$Unlabelled_location, folder)
+  combined_data <- bind_rows(lapply(list.files(folder_path, pattern = "\\.csv$", full.names = TRUE), read_csv))
+  write_csv(combined_data, file.path(MovementData$Unlabelled_location, paste0(folder, "_full.csv")))
+  
+#} # uncomment to perform the predictions too
+  #folder <- folders[1]
   files <- list.files(file.path(MovementData$Unlabelled_location, folder), full.names = TRUE, recursive = FALSE)
   
   for (file in files) {
@@ -156,15 +162,14 @@ for (folder in folders) {
     predictions <- predictingUnlabelled(processed_file, OptimalMLModel)
     
     # summarise per timevalue
-    summarised_predictions <- summarise(predict_file$predict_file, summarisation_window)
+    summarised_predictions <- summarise(predictions$predict_file, summarisation_window)
 
     # append to document
-    prediction_outcome <- rbind(predict_file, prediction_outcome)
+    prediction_outcome <- rbind(summarised_predictions, prediction_outcome)
   }
 }
 
 #  prediction_outcome <- summarise(prediction_outcome, 1)
-
 # save it
 prediction_file_path <- file.path(Experiment_path, 'Predictions.csv')
 write.table(prediction_outcome, file = prediction_file_path, sep = ",", row.names = FALSE, col.names = TRUE, append = FALSE, quote = FALSE)
@@ -176,19 +181,16 @@ grid_plot <- behaviour_grid(prediction_outcome)
 
 
 ### READ ALL CSVS INTO ONE FILE TO CHECK ORIENTATION ###
-folder_path <- file.path(MovementData$Unlabelled_location, "Rachel")
+folder_path <- file.path(MovementData$Unlabelled_location, "Dalene")
 combined_data <- bind_rows(lapply(list.files(folder_path, pattern = "\\.csv$", full.names = TRUE), read_csv))
-write_csv(combined_data, file.path(MovementData$Unlabelled_location, "Dave_full.csv"))
+write_csv(combined_data, file.path(MovementData$Unlabelled_location, "Dalene_full.csv"))
 
 #combined_data <- read.csv(file.path(MovementData$Unlabelled_location, "Rachel_full.csv"))
-combined_data <- formattingUnlabelled(combined_data, "Rachel", columnSubsetUnlabelled, 50, 0.01, columnSubsetTraining)
+combined_data <- formattingUnlabelled(combined_data, "Dalene", columnSubsetUnlabelled, 50, 0.01, columnSubsetTraining)
 
 plot_data <- combined_data[1:length(combined_data$time),]
 
 plotTrace(plot_data)
-
-
-
 
 ## BONUS ####
 # look at the feature information

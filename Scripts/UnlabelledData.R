@@ -133,7 +133,3 @@ plotTrace <- function(combined_data){
 
   return(trace)
 }
-  
-  
-  
-
