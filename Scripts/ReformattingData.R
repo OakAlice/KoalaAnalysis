@@ -1,13 +1,13 @@
 # Reformatting data based on the user input variables
 
-format_movement_data <- function(MovementData, columnSubset, test_individuals = NULL, desired_Hz = NULL, current_Hz = NULL, selectedBehaviours, ExperimentNumber) {
+format_movement_data <- function(MovementData, columnSubset, num_individuals = NULL, desired_Hz = NULL, current_Hz = NULL, selectedBehaviours) {
   
   # select and rename the relevant columns
   MoveData <- subset_and_rename(MoveData0, columnSubset)
   
   # only select the test individuals # this only works if not NA
-  if (!is.na(test_individuals) && !is.null(test_individuals)) {
-    selected_ids <- unique(MoveData$ID)[1:test_individuals]
+  if (!is.na(num_individuals) && !is.null(num_individuals)) {
+    selected_ids <- unique(MoveData$ID)[1:num_individuals]
     MoveData <- subset(MoveData, ID %in% selected_ids)
   }
   
@@ -32,15 +32,6 @@ format_movement_data <- function(MovementData, columnSubset, test_individuals = 
   
   # select only the chosen behaviours
   MoveData <- MoveData[MoveData$activity %in% selectedBehaviours, ]
-  
-  # create directory if it doesn't exist
-  output_dir <- paste0(save_directory, '/Experiment_', ExperimentNumber)
-  if (!dir.exists(output_dir)) {
-    dir.create(output_dir)
-  }
-  
-  # save the output
-  #write.csv(MoveData, paste0(output_dir, '/Formatted_MoveData.csv'))
   
   # return the data
   return(MoveData)

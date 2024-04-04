@@ -16,7 +16,7 @@ balance_data <- function(dat, threshold) {
     inner_join(dat_counts, by = "activity") %>%
     mutate(max_rows = if_else(n > threshold, threshold, n)) %>%
     filter(row_number <= max_rows) %>%
-    select(-row_number, -n)
+    select(-row_number, -n, -max_rows)
   
   # Combine and return
   balance_data <- dat_selected

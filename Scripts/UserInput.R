@@ -14,9 +14,9 @@ source("Dictionaries.R")
   MovementData <- SparkesKoala
 
 ## FORMATTING ####
-  test_individuals <- MovementData$test_individuals
+  num_individuals <- MovementData$test_individuals
   current_Hz <- MovementData$current_hz
-  downsampling_Hz <- c(20, 50, 100)
+  downsampling_Hz <- c(20)
   columnSubsetTraining <- MovementData$column_subset
   columnSubsetUnlabelled <- MovementData$column_subset2
   timeFormat <- MovementData$time_format
@@ -25,24 +25,25 @@ source("Dictionaries.R")
   behaviour_options <- MovementData$behaviours_2
   ignoreBehaviours <- c("<NA>")
   targetBehaviours <- MovementData$target_behaviour
+  folds <- 10
 
 ## PREPROCESSING ####
 # can select multiple settings for each
   
   # Balancing
   # Sampling Threshold
-  balancing_thresholds <- c(500, 1000, 2000, 4000)
+  balancing_thresholds <- c(500)
   
   # Window length, in seconds
-  window <- c(0.5, 1, 2)
+  window <- c(1, 2)
   
   # Window overlap, as a decimal percentage # if <0, is overlapping
-  overlap <- c(0, 50)
+  overlap <- c(0)
   
   # Features to be calculated on every axis, select from following list: 
-  # "mean", "max", "min", "sd", "sk", "cor", "SMA", "minODBA", "maxODBA", "minVDBA", "maxVDBA"
-  featuresList <- c("mean", "max", "min", "sd", "cor", "SMA", "minODBA", "maxODBA", "minVDBA", "maxVDBA", 
-                    "RMS", "FFT", "entropy", "zero_crossing")
+  featuresList <- c("mean", "max") # #"min", "sd") 
+                    #"cor", "SMA", "minODBA", "maxODBA", "minVDBA", "maxVDBA", 
+                    #"RMS", "FFT", "entropy", "zero_crossing")
   
   # Feature normalisation
   Normalisation <- c(FALSE) # "MinMaxScaling", "Standardiation"
@@ -53,26 +54,26 @@ source("Dictionaries.R")
   # 2_individuals: split ind 1 chronologically for training and validation, and ind 2 as LOIO test
   # unique options when nothing else worked: SparkesKoalaValidation
   splitMethod <- c("SparkesKoalaValidation")
-  good_individuals <- c("Elsa", "Meeka") # just for SparkesKoalaValidation 
+  test_individuals <- c("Elsa") # just for SparkesKoalaValidation 
   
   # stratify within the behaviours, pick from: TRUE, FALSE, or both
   #splitStratified <- c(TRUE, FALSE)
   
   # Proportion of training data, as a decimal percentage
-  trainingPercentage <- 0.6
-  validationPercentage <- 0.4
-  # testingPercentage is the remainder
+  trainingPercentage <- 0.7
+  validationPercentage <- 0.3
+  testingPercentage <- 0.3
 
 
 ## MODEL ARCHITECTURE ####
 # Model architecture, RF or SOM
   modelArchitecture <- "RF"
   probabilityReport <- c(FALSE) # True or false
-  probabilityThreshold <- 80 # as a percentage, above which accepted as true
+  probabilityThreshold <- 0 # as a percentage, above which accepted as true
   
   # hyperparamters ### need to make this with multiple versions
   #data_presentations <- c(100, 200) # for the SOM
-  ntree_list <- c(100, 200, 500, 1000) # for RF
+  ntree_list <- c(50, 100) # for RF
   
 ## PREDICTION ####
 summarisation_window <- 1 # in minutes

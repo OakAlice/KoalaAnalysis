@@ -1,5 +1,6 @@
-## Execute Script 2 continuous version ##
-# saves the output of each experiment to an appended csv and then runs optimal settings in a new model
+## Execute Script ####
+
+# load libraries and scripts
 
 library(pacman)
 p_load(dplyr, tidyverse, randomForest, ggpubr, caret, e1071, kohonen, 
@@ -8,108 +9,68 @@ p_load(dplyr, tidyverse, randomForest, ggpubr, caret, e1071, kohonen,
 
 setwd("C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Scripts") # scripts location
 
-# source each of the functions from other scripts
 scripts <- c("UserInput.R", "ReformattingData.R", "CombiningBehaviours.R", 
            "GeneralFunctions.R", "FeatureProcessing.R", "UnlabelledData.R",
-           "SplitData.R", "RandomForest.R", "OptimalModelRun.R") #, "DataExploration.R")
+           "SplitData.R", "RandomForest.R", "3.GenerateOptimalModel.R", "PartitionData.R",
+           "2.ModelTuningExecuteScript.R") #, "DataExploration.R")
 for (script in scripts) {
   source(script)
 }
 
-# Function to handle errors and print messages
-handle_error <- function(e) {
-  message("Error occurred: ", conditionMessage(e))
-}
-
-## PART ZERO: SET UP ####
-# Add try-catch block to handle errors
-tryCatch({
-  # make the experiment directory
+# create a save space
   Experiment_path <- paste0(save_directory, "/Experiment_", ExperimentNumber)
   ensure_dir(Experiment_path) # experiment directory
-  
-  # where you want the summaries to be stored
-  summary_file_path <- file.path(Experiment_path, 'Summary.csv')
-  
-  # read in Data
+
+# read in data and format to standardised shape
   MoveData0 <- read.csv(MovementData$Training_location)
   
-  # format
+  # debugging
+  debugging_data <- MoveData0 %>%
+    group_by(activity) %>%
+    slice(1:200)
   
-  ### MOVE THIS #### Put it in the loop
-  formatted_data <- format_movement_data(MoveData0, columnSubsetTraining, test_individuals, 50, 100, selectedBehaviours, ExperimentNumber)
+  formatted_data <- format_movement_data(MoveData0, columnSubsetTraining, num_individuals, 100, 100, selectedBehaviours)
   
   # explore # graphs will print to the Experiment directory
   #exploreData(Experiment_path, formatted_data, ignoreBehaviours)
   #plot_behaviours(selectedBehaviours, formatted_data, Experiment_path, 1000, 2)
 
-}, error = handle_error)  # Specify the error handling function
 
-## PART ONE: MODEL SELECTION #### 
+## PART ONE: SPLIT OUT THE TEST SET ####
+split_data <- split_condition(formatted_data, splitMethod, trainingPercentage, validationPercentage, num_individuals, test_individuals)
+otherDat <- na.omit(split_data$other)
+tstDat <- na.omit(split_data$test)
 
-# Process data, run models, and save to the same csv
-for (behaviourset in relabelledBehaviours){
-  # create the behaviour labels for this round
-  # behaviourset <- relabelledBehaviours[2]
-  behaviours <- MovementData[[behaviourset]]
-  relabelled_data <- relabel_activities(formatted_data, behaviours)
-  relabelled_data <- relabelled_data[relabelled_data$activity != "NA", ]
-  num_behs <- length(unique(relabelled_data$activity))
+## PART TWO: MODEL SELECTION ####
+# Process data, run models, and save to a parent csv
+modelOptions <- modelTuning(otherDat, relabelledBehaviours, MovementData, downsampling_Hz, window, overlap, featuresList, 
+                        balancing_thresholds, folds, trainingPercentage, ntree_list, targetBehaviours, 
+                        ExperimentNumber, test_individuals, split)
 
-  for (frequency in downsampling_Hz){
-    for (window_length in window) {
-      for (overlap_percent in overlap) {
-        # Process data
-        # this part will be parallel processed
-        processed_data <- process_data(relabelled_data, featuresList, window_length, overlap_percent, frequency)
-        
-        for (split in splitMethod) {
-          for (threshold in balancing_thresholds){
-            # Split data
-            list_train_test <- split_condition(processed_data, modelArchitecture, threshold, split, trainingPercentage, validationPercentage, test_individuals, good_individuals)
-            trDat <- na.omit(list_train_test$train)
-            valDat <- na.omit(list_train_test$validate)
-            tstDat <- na.omit(list_train_test$test)
-            
-            #if ("RF" %in% modelArchitecture) {
-            for (trees_number in ntree_list) {
-              # Train and Test Random Forest Model
-              rf_model <- train_rf_model(trDat, trees_number)
-              test_predictions <- predict_rf_model(rf_model, valDat)
-              metrics_df <- evaluate_rf_model(test_predictions, valDat, targetBehaviours)
-              
-              summary_df <- save_rf_model(
-                rf_model, metrics_df, ExperimentNumber, test_individuals, 
-                frequency, num_behs, featuresList, threshold, window_length, 
-                overlap_percent, split, trees_number, summary_file_path
-              )
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
+summarisedModelOptions <- exploreOptions(modelOptions)
+# just basic for now but will make more exploration later
   
-## PART TWO: OPTIMAL MODEL ####  
-# select the optimal hyperparamters from the csv and create the model
-optimal_window <- 2
-optimal_overlap <- 10
-optimal_split <- "SparkesKoalaValidation"
-behaviourset <- relabelledBehaviours[2]
-optimal_ntree <- 500
-optimal_threshold <- 4000
-test_type <- "test"
-probabilityReport <- FALSE
-probabilityThreshold <- 0.5
-optimal_Hz <- 50
+# manually assess the csv to find the optimal conditions
+  
+## PART THREE: TEST OPTIMAL MODEL ON HOLD-OUT DATA ####
+optimalMLModel <- generateOptimalModel(otherDat, 
+                                       behaviourset = "behaviours_2", 
+                                       MovementData, 
+                                       down_Hz = 20, 
+                                       window_length = 1, 
+                                       overlap_percent = 0, 
+                                       featuresList, 
+                                       threshold = 2000, 
+                                       folds = 10, 
+                                       trainingPercentage = 0.6, 
+                                       trees_number = 500)
+# save for later
+model_file_path <- file.path(Experiment_path, "OptimalModel.rda")
+save(optimalMLModel, file = model_file_path)
 
-# run the whole process... note that there is parallel procesing inside the function
-optimal_results <- verify_optimal_results(
-  relabelled_data, featuresList, optimal_window, optimal_overlap, optimal_Hz, 
-  optimal_split, optimal_ntree, optimal_threshold, trainingPercentage, validationPercentage, 
-  test_individuals, good_individuals, test_type, probabilityReport, probabilityThreshold)
+# assess performance on the hold-out data
+optimal_results <- verify_optimal_results(tstDat, optimalMLModel, test_type = "test", 
+                                          probabilityReport = FALSE,  probabilityThreshold = NULL)
 
 print(optimal_results$confusion_matrix)
 print(optimal_results$confusion_plot)
@@ -117,15 +78,8 @@ print(optimal_results$stacked_plot)
 #print(optimal_results$NA_loss_plot)
 print(optimal_results$metrics)
 
-OptimalMLModel <- optimal_results$trained_model
-model_file_path <- file.path(Experiment_path, "OptimalModel.rda")
-save(OptimalMLModel, file = model_file_path)
 
-
-
-
-
-## PART THREE: APPLYING TO UNLABELLED DATA ####  
+## PART FOUR: APPLYING TO UNLABELLED DATA ####  
 
 # chunked folder
 folders <- list.dirs(MovementData$Unlabelled_location, full.names = FALSE, recursive = FALSE)
@@ -162,7 +116,7 @@ for (folder in folders) {
     predictions <- predictingUnlabelled(processed_file, OptimalMLModel)
     
     # summarise per timevalue
-    summarised_predictions <- summarise(predictions$predict_file, summarisation_window)
+    summarised_predictions <- aggregate_windows(predictions$predict_file, summarisation_window)
 
     # append to document
     prediction_outcome <- rbind(summarised_predictions, prediction_outcome)
@@ -175,6 +129,12 @@ prediction_file_path <- file.path(Experiment_path, 'Predictions.csv')
 write.table(prediction_outcome, file = prediction_file_path, sep = ",", row.names = FALSE, col.names = TRUE, append = FALSE, quote = FALSE)
 # plot it
 grid_plot <- behaviour_grid(prediction_outcome)
+
+
+
+
+
+
 
 
 

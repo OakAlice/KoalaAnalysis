@@ -85,7 +85,7 @@ evaluate_rf_model <- function(test_predictions, tstDat, targetBehaviours = NULL)
 
 # PART FOUR: SAVE ALL THE RESULTS
 save_rf_model <- function(
-    rf_model, metrics_df, ExperimentNumber, test_individuals, 
+    rf_model, metrics_df, ExperimentNumber, 
     frequency, num_behs, featuresList, threshold, window_length, 
     overlap_percent, split, trees, summary_file_path
 ) {
@@ -96,7 +96,6 @@ save_rf_model <- function(
   # Prepare static part of the summary
   static_metrics <- list(
     ExperimentNumber = as.numeric(ExperimentNumber),
-    TestIndividuals = as.numeric(test_individuals),
     DesiredHz = as.numeric(frequency),
     numBehaviours = as.numeric(num_behs),
     NumFeatures = as.numeric(length(featuresList)),
@@ -125,13 +124,6 @@ save_rf_model <- function(
   
   # Convert the combined list to a dataframe ensuring no list-type columns
   summary_df <- setNames(data.frame(matrix(unlist(final_metrics_list), nrow=1, byrow=TRUE), stringsAsFactors=FALSE), names(final_metrics_list))
-  
-  # Write to file, handling headers appropriately
-  if(!file.exists(summary_file_path)) {
-    write.csv(summary_df, summary_file_path, row.names = FALSE)
-  } else {
-    write.table(summary_df, file = summary_file_path, sep = ",", row.names = FALSE, col.names = FALSE, append = TRUE, quote = FALSE)
-  }
   
   return(summary_df)
 }

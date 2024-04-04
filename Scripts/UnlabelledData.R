@@ -59,7 +59,7 @@ predictingUnlabelled <- function(processed_file, OptimalMLModel){
 
 
 # Summarise into behaviour windows ####
-summarise <- function(predict_file, summarisation_window) {
+aggregate_windows <- function(predict_file, summarisation_window) {
   # Convert timestamp to POSIXct format
   predict_file$timestamp <- as.POSIXct(predict_file$time, format = "%Y-%m-%d %H:%M:%S")
   
