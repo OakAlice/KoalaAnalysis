@@ -17,10 +17,11 @@ generateOptimalModel <- function(otherDat, behaviourset, MovementData, down_Hz, 
             
     partitioned_data <- partition_data(balanced_data, folds, trainingPercentage, stratification)
     trDat <- na.omit(partitioned_data$Training)
+    trDat <- trDat %>% select(-partition, -ID)
              
     rf_model <- train_rf_model(trDat, trees_number)
     
-    return(rf_model = OptimalMLModel)
+    return(OptimalMLModel = rf_model)
   }
 
 
@@ -194,10 +195,7 @@ test_optimal_model <- function(model, tstDat, probabilityReport, probabilityThre
 verify_optimal_results <- function(tstDat, optimalMLModel, test_type, probabilityReport, probabilityThreshold) {
   
   # extract the test data type (for controlled comparisons)
-  if(test_type == "test") {
-    tstDat <- na.omit(list_train_test$test)
-  } else if(test_type == "random") {
-    tstDat <- na.omit(list_train_test$test)
+  if(test_type == "random") {
     tstDat$activity <- tstDat$activity[sample(nrow(tstDat))]
   }
   

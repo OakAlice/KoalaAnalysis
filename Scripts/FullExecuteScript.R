@@ -27,9 +27,11 @@ for (script in scripts) {
   # debugging
   debugging_data <- MoveData0 %>%
     group_by(activity) %>%
-    slice(1:200)
+    slice(1:3000)
   
-  formatted_data <- format_movement_data(MoveData0, columnSubsetTraining, num_individuals, 100, 100, selectedBehaviours)
+  MoveData <- debugging_data
+  
+  formatted_data <- format_movement_data(MoveData, columnSubsetTraining, num_individuals, 100, 100, selectedBehaviours)
   
   # explore # graphs will print to the Experiment directory
   #exploreData(Experiment_path, formatted_data, ignoreBehaviours)
@@ -49,8 +51,10 @@ modelOptions <- modelTuning(otherDat, relabelledBehaviours, MovementData, downsa
 
 summarisedModelOptions <- exploreOptions(modelOptions)
 # just basic for now but will make more exploration later
+# add MCC in
   
-# manually assess the csv to find the optimal conditions
+# currently we manually assess the csv to find the optimal conditions
+# set up auto extraction
   
 ## PART THREE: TEST OPTIMAL MODEL ON HOLD-OUT DATA ####
 optimalMLModel <- generateOptimalModel(otherDat, 
@@ -69,7 +73,11 @@ model_file_path <- file.path(Experiment_path, "OptimalModel.rda")
 save(optimalMLModel, file = model_file_path)
 
 # assess performance on the hold-out data
-optimal_results <- verify_optimal_results(tstDat, optimalMLModel, test_type = "test", 
+# process the tstDat
+tstDat2 <- process_data(tstDat, featuresList, window_length = 1, overlap_percent = 0, down_Hz)
+tstDat3 <- tstDat2 %>% select(-ID)
+
+optimal_results <- verify_optimal_results(tstDat3, optimalMLModel, test_type = "test", 
                                           probabilityReport = FALSE,  probabilityThreshold = NULL)
 
 print(optimal_results$confusion_matrix)

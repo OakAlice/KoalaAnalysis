@@ -1,9 +1,9 @@
 # Reformatting data based on the user input variables
 
-format_movement_data <- function(MovementData, columnSubset, num_individuals = NULL, desired_Hz = NULL, current_Hz = NULL, selectedBehaviours) {
+format_movement_data <- function(MoveData, columnSubset, num_individuals = NULL, desired_Hz = NULL, current_Hz = NULL, selectedBehaviours) {
   
   # select and rename the relevant columns
-  MoveData <- subset_and_rename(MoveData0, columnSubset)
+  MoveData <- subset_and_rename(MoveData, columnSubset)
   
   # only select the test individuals # this only works if not NA
   if (!is.na(num_individuals) && !is.null(num_individuals)) {
