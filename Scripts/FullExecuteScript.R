@@ -30,6 +30,7 @@ for (script in scripts) {
     slice(1:3000)
   
   MoveData <- debugging_data
+  MoveData <- MoveData0
   
   formatted_data <- format_movement_data(MoveData, columnSubsetTraining, num_individuals, 100, 100, selectedBehaviours)
   
@@ -50,34 +51,39 @@ modelOptions <- modelTuning(otherDat, relabelledBehaviours, MovementData, downsa
                         ExperimentNumber, test_individuals, split)
 
 summarisedModelOptions <- exploreOptions(modelOptions)
+write.csv(summarisedModelOptions, file.path(Experiment_path, 'SummarisedModelOptions.csv'))
 # just basic for now but will make more exploration later
 # add MCC in
   
 # currently we manually assess the csv to find the optimal conditions
 # set up auto extraction
+
   
 ## PART THREE: TEST OPTIMAL MODEL ON HOLD-OUT DATA ####
-optimalMLModel <- generateOptimalModel(otherDat, 
+OptimalMLModel <- generateOptimalModel(otherDat, 
                                        behaviourset = "behaviours_2", 
                                        MovementData, 
                                        down_Hz = 20, 
-                                       window_length = 1, 
-                                       overlap_percent = 0, 
+                                       window_length = 0.5, 
+                                       overlap_percent = 50, 
                                        featuresList, 
-                                       threshold = 2000, 
+                                       threshold = 500, 
                                        folds = 10, 
                                        trainingPercentage = 0.6, 
                                        trees_number = 500)
 # save for later
-model_file_path <- file.path(Experiment_path, "OptimalModel.rda")
-save(optimalMLModel, file = model_file_path)
+model_file_path <- file.path(Experiment_path, "6BehOptimalModel.rda")
+save(OptimalMLModel, file = model_file_path)
 
 # assess performance on the hold-out data
-# process the tstDat
-tstDat2 <- process_data(tstDat, featuresList, window_length = 1, overlap_percent = 0, down_Hz)
-tstDat3 <- tstDat2 %>% select(-ID)
+# relabel and process the tstDat # turn this into a function
+behaviours <- MovementData[["behaviours_2"]]
+relabelled_data <- relabel_activities(tstDat, behaviours)
+relabelled_data <- relabelled_data[relabelled_data$activity != "NA", ]
+processed_data <- process_data(relabelled_data, featuresList, window_length = 0.5, overlap_percent = 50, 20) # last one is down_Hz
+tstDat2 <- processed_data %>% select(-ID)
 
-optimal_results <- verify_optimal_results(tstDat3, optimalMLModel, test_type = "test", 
+optimal_results <- verify_optimal_results(tstDat2, OptimalMLModel, test_type = "test", 
                                           probabilityReport = FALSE,  probabilityThreshold = NULL)
 
 print(optimal_results$confusion_matrix)

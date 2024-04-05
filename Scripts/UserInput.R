@@ -5,7 +5,7 @@ source("Dictionaries.R")
 
 ## SET UP ####
   # Experiment Number # for keeping track of your work
-  ExperimentNumber <- 10
+  ExperimentNumber <- 11
   
   # directory where everything is to be saved
   save_directory <- "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Redo"
@@ -16,34 +16,34 @@ source("Dictionaries.R")
 ## FORMATTING ####
   num_individuals <- MovementData$test_individuals
   current_Hz <- MovementData$current_hz
-  downsampling_Hz <- c(20)
+  downsampling_Hz <- c(20, 50, 100)
   columnSubsetTraining <- MovementData$column_subset
   columnSubsetUnlabelled <- MovementData$column_subset2
   timeFormat <- MovementData$time_format
   selectedBehaviours <- MovementData$behaviours_1
-  relabelledBehaviours <- c("behaviours_1","behaviours_2", "behaviours_3")
+  relabelledBehaviours <- c("behaviours_2", "behaviours_3")
   behaviour_options <- MovementData$behaviours_2
   ignoreBehaviours <- c("<NA>")
   targetBehaviours <- MovementData$target_behaviour
-  folds <- 10
+  folds <- 3
 
 ## PREPROCESSING ####
 # can select multiple settings for each
   
   # Balancing
   # Sampling Threshold
-  balancing_thresholds <- c(500)
+  balancing_thresholds <- c(500, 1000, 4000)
   
   # Window length, in seconds
-  window <- c(1, 2)
+  window <- c(0.5, 1, 2)
   
   # Window overlap, as a decimal percentage # if <0, is overlapping
-  overlap <- c(0)
+  overlap <- c(0, 50)
   
   # Features to be calculated on every axis, select from following list: 
-  featuresList <- c("mean", "max") # #"min", "sd") 
-                    #"cor", "SMA", "minODBA", "maxODBA", "minVDBA", "maxVDBA", 
-                    #"RMS", "FFT", "entropy", "zero_crossing")
+  featuresList <- c("mean", "max", "min", "sd",
+                    "cor", "SMA", "minODBA", "maxODBA", "minVDBA", "maxVDBA", 
+                    "RMS", "FFT", "entropy", "zero_crossing")
   
   # Feature normalisation
   Normalisation <- c(FALSE) # "MinMaxScaling", "Standardiation"
@@ -73,7 +73,7 @@ source("Dictionaries.R")
   
   # hyperparamters ### need to make this with multiple versions
   #data_presentations <- c(100, 200) # for the SOM
-  ntree_list <- c(50, 100) # for RF
+  ntree_list <- c(100, 250, 500, 1000) # for RF
   
 ## PREDICTION ####
 summarisation_window <- 1 # in minutes

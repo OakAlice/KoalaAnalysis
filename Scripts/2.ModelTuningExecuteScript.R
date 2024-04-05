@@ -7,10 +7,11 @@ modelTuning <- function(otherDat, relabelledBehaviours, MovementData, downsampli
                         ExperimentNumber, test_individuals, split) {
   
   modelOptions <- data.frame()
+  summary_file_path <- file.path(Experiment_path, 'Summary.csv')  # Path to the CSV file
   
-  #for (behaviourset in relabelledBehaviours){
+  for (behaviourset in relabelledBehaviours){
     # create the behaviour labels for this round
-    behaviourset <- relabelledBehaviours[2]
+    #behaviourset <- relabelledBehaviours[2]
     behaviours <- MovementData[[behaviourset]]
     relabelled_data <- relabel_activities(otherDat, behaviours)
     relabelled_data <- relabelled_data[relabelled_data$activity != "NA", ]
@@ -18,8 +19,11 @@ modelTuning <- function(otherDat, relabelledBehaviours, MovementData, downsampli
     num_behs <- length(unique(relabelled_data$activity))
     
     for (down_Hz in downsampling_Hz){
+      # down_Hz <- downsampling_Hz[1]
       for (window_length in window) {
+        # window_length <- window[1]
         for (overlap_percent in overlap) {
+          #overlap_percent <- overlap[1]
           # Process data
           # this part will be parallel processed
           processed_data <- process_data(relabelled_data, featuresList, window_length, overlap_percent, down_Hz)
@@ -51,11 +55,18 @@ modelTuning <- function(otherDat, relabelledBehaviours, MovementData, downsampli
                   overlap_percent, splitMethod, trees_number)
                 
                 modelOptions <- rbind(summary_df, modelOptions)
+                
+                # iteratively save
+                if(!file.exists(summary_file_path)) {
+                  write.csv(summary_df, summary_file_path, row.names = FALSE)
+                } else {
+                  write.table(summary_df, file = summary_file_path, sep = ",", row.names = FALSE, col.names = FALSE, append = TRUE, quote = FALSE)
+                }
               }
             } 
           }
         }
-      #}
+      }
     }
   }
   return(modelOptions)

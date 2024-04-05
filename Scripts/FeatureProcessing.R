@@ -66,23 +66,23 @@ compute_features <- function(window_chunk, featuresList) {
   
   accel_axes <- intersect(available_axes, c("X_accel", "Y_accel", "Z_accel"))
   
-  if (length(accel_axes) > 0 && ("SMA" %in% featuresList)) {
+  if (length(accel_axes) > 1 && ("SMA" %in% featuresList)) {
     result$SMA <- sum(rowSums(abs(window_chunk[, accel_axes]))) / nrow(window_chunk)
   }
   
-  if (length(accel_axes) > 0 && ("minODBA" %in% featuresList || "maxODBA" %in% featuresList)) {
+  if (length(accel_axes) > 1 && ("minODBA" %in% featuresList || "maxODBA" %in% featuresList)) {
     ODBA <- rowSums(abs(window_chunk[, accel_axes]))
     result$minODBA <- min(ODBA)
     result$maxODBA <- max(ODBA)
   }
   
-  if (length(accel_axes) > 0 && ("minVDBA" %in% featuresList || "maxVDBA" %in% featuresList)) {
+  if (length(accel_axes) > 1 && ("minVDBA" %in% featuresList || "maxVDBA" %in% featuresList)) {
     VDBA <- sqrt(rowSums(window_chunk[, accel_axes]^2))
     result$minVDBA <- min(VDBA)
     result$maxVDBA <- max(VDBA)
   }
   
-  if ("cor" %in% featuresList) {
+  if (length(accel_axes) > 1 && ("cor" %in% featuresList)) {
     for (i in 1:(length(accel_axes) - 1)) {
       for (j in (i + 1):length(accel_axes)) {
         axis1 <- accel_axes[i]

@@ -56,7 +56,21 @@ evaluate_rf_model <- function(test_predictions, tstDat, targetBehaviours = NULL)
   
   F1 <- ifelse((precision + recall) > 0, 2 * (precision * recall) / (precision + recall), 0)
   
-  metrics <- data.frame(General_accuracy = accuracy, Mean_recall = mean(recall), Mean_precision = mean(precision), General_specificity = specificity, Mean_F1 = mean(F1))
+  # Calculate Matthews Correlation Coefficient (MCC)
+  TP <- diag(confusion_matrix)
+  FP <- colSums(confusion_matrix) - TP
+  FN <- rowSums(confusion_matrix) - TP
+  TN <- sum(confusion_matrix) - TP - FP - FN
+  mcc <- (TP * TN - FP * FN) / sqrt((TP + FP) * (TP + FN) * (TN + FP) * (TN + FN))
+  
+  metrics <- data.frame(
+    General_accuracy = accuracy, 
+    Mean_recall = mean(recall), 
+    Mean_precision = mean(precision), 
+    General_specificity = specificity, 
+    Mean_F1 = mean(F1),
+    Mean_MCC = mean(mcc)
+  )
   
   # If targetBehaviours are specified, calculate metrics for them
   if (!is.null(targetBehaviours)) {
@@ -71,11 +85,13 @@ evaluate_rf_model <- function(test_predictions, tstDat, targetBehaviours = NULL)
         behaviour_recall <- TP / (TP + FN)
         behaviour_precision <- TP / (TP + FP)
         behaviour_F1 <- 2 * (behaviour_precision * behaviour_recall) / (behaviour_precision + behaviour_recall)
+        behaviour_mcc <- (TP * TN - FP * FN) / sqrt((TP + FP) * (TP + FN) * (TN + FP) * (TN + FN))
         
         metrics[[paste(behaviour, "accuracy", sep = "_")]] <- behaviour_accuracy
         metrics[[paste(behaviour, "recall", sep = "_")]] <- behaviour_recall
         metrics[[paste(behaviour, "precision", sep = "_")]] <- behaviour_precision
         metrics[[paste(behaviour, "F1", sep = "_")]] <- behaviour_F1
+        metrics[[paste(behaviour, "MCC", sep = "_")]] <- behaviour_mcc
       }
     }
   }
