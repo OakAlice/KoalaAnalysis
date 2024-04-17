@@ -52,6 +52,10 @@ modelOptions <- modelTuning(otherDat, relabelledBehaviours, MovementData, downsa
 
 summarisedModelOptions <- exploreOptions(modelOptions)
 write.csv(summarisedModelOptions, file.path(Experiment_path, 'SummarisedModelOptions.csv'))
+
+# make heatmaps
+heatmaps <- generateHeatmap(summarisedModelOptions, var1, var2)
+
 # just basic for now but will make more exploration later
 # add MCC in
   
@@ -177,3 +181,23 @@ processed_data2 <- processed_data %>%
 
 extractFeatureInformation(processed_data2, key_behaviours, 7) # go here and look at the function
 
+
+
+
+
+
+
+##### PRINT FOR GABBY TO RELABEL
+# Function to save data for each unique combination
+unique_combinations <- unique(MoveData0[c("ID", "activity")])
+
+# Iterate over each unique combination
+for (i in 1:nrow(unique_combinations)) {
+  combination <- unique_combinations[i, ]
+  specific_ID <- combination$ID
+  specific_activity <- gsub("/", "_", combination$activity)  # Replace '/' with '_'
+  subset_data <- filter(MoveData0, ID == specific_ID & activity == specific_activity)
+  filename <- paste("Raw_", specific_ID, "_", specific_activity, ".csv", sep = "")
+  filepath <- file.path(Experiment_path, filename)
+  write.csv(subset_data, filepath, row.names = FALSE)
+}

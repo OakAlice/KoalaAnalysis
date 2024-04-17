@@ -200,7 +200,7 @@ verify_optimal_results <- function(tstDat, optimalMLModel, test_type, probabilit
   }
   
   # Test model
-  test_output <- test_optimal_model(rf_model, tstDat, probabilityReport, probabilityThreshold)
+  test_output <- test_optimal_model(optimalMLModel, tstDat, probabilityReport, probabilityThreshold)
   confusion_matrix <- test_output$confusion_matrix
   test_predictions <- test_output$test_predictions
   test_actual <- test_output$test_actual
