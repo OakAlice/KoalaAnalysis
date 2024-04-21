@@ -4,7 +4,7 @@
 #  referenceName <- list(
 #    species = "species",
 #    data_location = "c:/path/to/data/data.csv",
-#    test_individuals = #,
+#    individuals = #,
 #    current_hz = #,
 #    column_subset = c(list = list),
 #    time_format = "matlab" or "other",
@@ -12,11 +12,12 @@
 #    behaviours_2 = c("old behaviour" = "new behaviour"),
 #    target_behaviour = c("list")
 
-VerkjojaDog <- list(
-  name = "VerkjojaDog",
+Vehkaoja_Dog <- list(
+  name = "Vehkaoja_Dog",
   notes = "Dog data taken from a paper",
-  data_location = "C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Data/DogMoveData.csv",
-  test_individuals = 45,
+  data_location = "C:/Users/oakle/Documents/PhD docs/Chapter_Two/LabelledDataSets/Vehkaoja_Dog/Training_Data_Formatted.csv",
+  #data_location = "//hpccache/HPCcache/private/oaw001/Data/Vehkaoja_Dog/Vehkaoja_Dog_Labelled.csv",
+  individuals = 45,
   current_hz = 50,
   column_subset = c("DogID" = "ID", "t_sec" = "time", 
                     "ANeck_x" = "X_accel", "ANeck_y" = "Y_accel", "ANeck_z" = "Z_accel",
@@ -25,16 +26,15 @@ VerkjojaDog <- list(
   time_format = "other",
   behaviours_1 = c("Eating", "Walking", "Jumping", "Tugging", "Galloping",     
                    "Carrying object", "Standing", "Panting", "Lying chest", "Sitting", "Playing",        
-                   "Bowing", "Trotting", "Shaking", "Pacing"),
-  target_behaviour = c("Walking")
+                   "Bowing", "Trotting", "Shaking", "Pacing")
 )
 
 SparkesKoala <- list(
   name = "SparkesKoala",
   notes = "Gabby koala data",
-  Training_location = "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/ReducedTrainingData.csv",
+  data_location = "C:/Users/oakle/Documents/PhD docs/Redoing Honours/Gabby Data/ReducedTrainingData.csv",
   Unlabelled_location = "D:/Koala_Data",
-  test_individuals = 4, # only 2 with a lot of data
+  individuals = 4, # only 2 with a lot of data
   current_hz = 100,
   column_subset = c("time" = "time",                                      # training data
                     "X_accel" = "X_accel", "Y_accel" = "Y_accel", "Z_accel" = "Z_accel",
@@ -54,10 +54,6 @@ SparkesKoala <- list(
                   "NA" = c("Bellowing", "Shake", "Branch Walking"),
                   "Climbing" = c("Climbing Down", "Climbing Up", "Rapid Climbing"),
                   "Walking" = c("Walking", "Trot", "Gallop", "Bound/Half-Bound")),
-  behaviours_3 = list("Inactive" = c("Tree Sitting", "Sleeping/Resting", "Ground Sitting"),
-                      "Tree Movement" = c("Tree Movement", "Swinging/Hanging", "Grooming", "Climbing Down", "Climbing Up", "Rapid Climbing"),
-                      "NA" = c("Bellowing", "Shake", "Branch Walking"),
-                      "Walking" = c("Walking", "Trot", "Gallop", "Bound/Half-Bound")),
   target_behaviour = c("Walking")
 )
 
@@ -65,7 +61,7 @@ WilsonKoala <- list(
   name = "WilsonKoala",
   notes = "Koala data collected during my honours",
   data_location = "C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Data/TrainingData2.csv",
-  test_individuals = 8,
+  individuals = 8,
   current_hz = 50,
   column_subset = c("Time" = "time", 
                     "X" = "X_accel", "Y" = "Y_accel", "Z" = "Z_accel",
@@ -83,7 +79,7 @@ DiCiccoPerentie <- list(
   name = "DiCiccoPerentie",
   notes = "Perentie data from Jordan's honours (original data)", # needs to be redone
   data_location = "C:/Users/oakle/Documents/PhD docs/CHapter_Three_Perentie/TrainingData2.csv",
-  test_individuals = 4,
+  individuals = 4,
   current_hz = 50,
   column_subset = c("Time" = "time", 
                     "X" = "X_accel", "Y" = "Y_accel", "Z" = "Z_accel",

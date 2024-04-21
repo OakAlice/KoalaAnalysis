@@ -117,7 +117,7 @@ compute_features <- function(window_chunk, featuresList) {
   return(result)
 }
 
-process_data <- function(relabelled_data, featuresList, window_length, overlap_percent, desired_Hz) {
+process_data <- function(relabelled_data, featuresList, window_length, overlap_percent, desired_Hz, featureNormalisation) {
   # this section will be done with parallel processing
   processed_windows <- list()
   
@@ -150,12 +150,12 @@ process_data <- function(relabelled_data, featuresList, window_length, overlap_p
   
   # normalisation,if selected
   features_to_normalise <- setdiff(colnames(processed_data), c("time", "ID", "activity"))
-  if (Normalisation == "MinMaxScaling") {
+  if (featureNormalisation == "MinMaxScaling") {
     # Normalize the selected columns
     processed_data[features_to_normalise] <- lapply(processed_data[features_to_normalise], function(x) {
       (x - min(x, na.rm = TRUE)) / (max(x, na.rm = TRUE) - min(x, na.rm = TRUE))
     })
-  } else if (Normalisation == "Standarisation") {
+  } else if (featureNormalisation == "Standarisation") {
     processed_data[features_to_normalise] <- lapply(processed_data[features_to_normalise], function(x) {
       (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE)
     })

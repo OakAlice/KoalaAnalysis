@@ -1,56 +1,100 @@
-## Execute Script ####
+# Script for running on the HPC
 
-# load libraries and scripts
+## SCRIPT SET UP ####
 
-library(pacman)
-p_load(dplyr, tidyverse, randomForest, ggpubr, caret, e1071, kohonen, 
-       WaveletComp, purrr, cowplot, scales, crqa, pracma, doParallel,
-       foreach, parallel)
+# Load or install and load packages
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(dplyr, tidyverse, randomForest, ggpubr, caret, e1071, kohonen, 
+               WaveletComp, purrr, cowplot, scales, crqa, pracma, doParallel,
+               foreach, parallel)
 
-setwd("C:/Users/oakle/Documents/GitHub/KoalaAnalysis/Scripts") # scripts location
-
-scripts <- c("UserInput.R", "ReformattingData.R", "CombiningBehaviours.R", 
-           "GeneralFunctions.R", "FeatureProcessing.R", "UnlabelledData.R",
-           "SplitData.R", "RandomForest.R", "3.GenerateOptimalModel.R", "PartitionData.R",
-           "2.ModelTuningExecuteScript.R") #, "DataExploration.R")
-for (script in scripts) {
-  source(script)
+# Load in all the scripts - assuming they are all together in the base path location
+scripts <- c("Scripts/2.ModelTuningExecuteScript.R",
+             "Scripts/3.GenerateOptimalModel.R",
+             "Scripts/Dictionaries.R",
+             "Scripts/UserInput.R",
+             "Scripts/ReformattingData.R", "Scripts/CombiningBehaviours.R", "Scripts/GeneralFunctions.R", 
+             "Scripts/FeatureProcessing.R", 
+             "Scripts/SplitData.R", "Scripts/RandomForest.R", "Scripts/PartitionData.R",
+             "Scripts/ValidationEvaluation.R",
+             "Scripts/UnlabelledData.R", "Scripts/Balancing.R"
+           ) #, "DataExploration.R")
+# Function to source a script with error handling
+source_script <- function(script_path) {
+  if (file.exists(script_path)) {
+    source(script_path)
+  } else {
+    message("Script not found: ", script_path)
+  }
 }
 
-# create a save space
-  Experiment_path <- paste0(save_directory, "/Experiment_", ExperimentNumber)
-  ensure_dir(Experiment_path) # experiment directory
+# Source each script
+base_path <- "C:/Users/oakle/Documents/GitHub/KoalaAnalysis"
+#base_path <- "//hpccache/HPCcache/private/oaw001"
+for (script in scripts) {
+  script_path <- file.path(base_path, script)
+  source_script(script_path)
+}
 
-# read in data and format to standardised shape
-  MoveData0 <- read.csv(MovementData$Training_location)
-  
-  # debugging
-  debugging_data <- MoveData0 %>%
-    group_by(activity) %>%
-    slice(1:3000)
-  
-  MoveData <- debugging_data
-  MoveData <- MoveData0
-  
-  formatted_data <- format_movement_data(MoveData, columnSubsetTraining, num_individuals, 100, 100, selectedBehaviours)
+# create the save directory
+#Save_path <- file.path(base_path, "Output", MovementData$name, ExperimentNumber) ## previously: Experiment_path
+#ensure_dir(Save_path) # experiment directory
+
+## LOAD AND FORMAT DATA ####
+# read in data
+MoveData <- read.csv(MovementData$data_location)
+formatted_data <- format_movement_data(MoveData, MovementData$column_subset, MovementData$time_format, num_individuals[1], MovementData$current_hz, 20)
   
   # explore # graphs will print to the Experiment directory
   #exploreData(Experiment_path, formatted_data, ignoreBehaviours)
   #plot_behaviours(selectedBehaviours, formatted_data, Experiment_path, 1000, 2)
 
-
-## PART ONE: SPLIT OUT THE TEST SET ####
-split_data <- split_condition(formatted_data, splitMethod, trainingPercentage, validationPercentage, num_individuals, test_individuals)
+## SPLIT OUT THE TEST SET ####
+split_data <- split_condition(formatted_data, splitMethod, trainingPercentage, validationPercentage, num_individuals, test_individuals = 2)
 otherDat <- na.omit(split_data$other)
 tstDat <- na.omit(split_data$test)
+test_individuals <- length(unique(tstDat$ID))
 
-## PART TWO: MODEL SELECTION ####
+## MODEL SELECTION ####
+# save path
+# summary_file_path <- file.path(base_path, 'Output', 'Summary.csv')  # Path to the CSV file
+summary_file_path <- file.path("C:/Users/oakle/Documents/PhD docs/Chapter_Two/Output", "Summary.csv")
+
+# formulate all possible combinations
+options_df <- expand.grid(num_individuals, behaviours, downsampling_Hz, splitStratified, window, 
+                          overlap, featureNormalisation, featureSelection, 
+                          balancing_thresholds, modelArchitecture, ntree_list)
+colnames(options_df) <- c("individuals", "behaviourset", "down_Hz", "stratification", "window_length", 
+                          "overlap_percent", "normalised", "feature_selected", 
+                          "threshold", "modelArchitecture", "trees_number")
+
+# set up which of them will be searched
+# grid = all
+
 # Process data, run models, and save to a parent csv
-modelOptions <- modelTuning(otherDat, relabelledBehaviours, MovementData, downsampling_Hz, window, overlap, featuresList, 
-                        balancing_thresholds, folds, trainingPercentage, ntree_list, targetBehaviours, 
-                        ExperimentNumber, test_individuals, split)
+modelOptions <- lapply(1:nrow(options_df), function(i) {
+  modelTuning(summary_file_path, 
+              otherDat, 
+              num_individuals,
+              options_df[i, "behaviourset"], 
+              options_df[i, "down_Hz"],
+              options_df[i, "window_length"], 
+              options_df[i, "overlap_percent"],
+              options_df[i, "normalised"],
+              options_df[i, "feature_selected"],
+              featuresList,
+              options_df[i, "threshold"], 
+              options_df[i, "trees_number"],
+              folds, 
+              trainingPercentage,
+              options_df[i, "stratification"]
+              )
+    }
+)
+modelOptions <- read.csv(summary_file_path)
 
 summarisedModelOptions <- exploreOptions(modelOptions)
+# write.csv(summarisedModelOptions, file.path("C:/Users/oakle/Documents/PhD docs/Chapter_Two/Output", "AveragedSummary.csv"))
 write.csv(summarisedModelOptions, file.path(Experiment_path, 'SummarisedModelOptions.csv'))
 
 # make heatmaps
@@ -181,23 +225,3 @@ processed_data2 <- processed_data %>%
 
 extractFeatureInformation(processed_data2, key_behaviours, 7) # go here and look at the function
 
-
-
-
-
-
-
-##### PRINT FOR GABBY TO RELABEL
-# Function to save data for each unique combination
-unique_combinations <- unique(MoveData0[c("ID", "activity")])
-
-# Iterate over each unique combination
-for (i in 1:nrow(unique_combinations)) {
-  combination <- unique_combinations[i, ]
-  specific_ID <- combination$ID
-  specific_activity <- gsub("/", "_", combination$activity)  # Replace '/' with '_'
-  subset_data <- filter(MoveData0, ID == specific_ID & activity == specific_activity)
-  filename <- paste("Raw_", specific_ID, "_", specific_activity, ".csv", sep = "")
-  filepath <- file.path(Experiment_path, filename)
-  write.csv(subset_data, filepath, row.names = FALSE)
-}

@@ -1,7 +1,5 @@
 # Code to create the training and testing data
 
-source("Balancing.R")
-
 # process the data
 split_condition <- function(formatted_data, splitMethod, 
                             trainingPercentage, validationPercentage, 
@@ -70,14 +68,15 @@ split_condition <- function(formatted_data, splitMethod,
       
     } else {
       # how many individuals to be left out
-      approx_individuals <- ceiling(test_individuals * prop)
+      approx_individuals <- ceiling(num_individuals * prop)
       
       # Adjust any rounded 0s to be 1 - minimum necessary
       approx_individuals[approx_individuals == 0] <- 1
+      test_individuals <- approx_individuals[2]
       
       # randomly select that number of IDs
       unique_ids <- unique(dat$ID)
-      selected_ids <- sample(unique_ids, size = approx_individuals)
+      selected_ids <- sample(unique_ids, size = test_individuals)
     }
       
     test_data <- dat[dat$ID %in% selected_ids, ]
