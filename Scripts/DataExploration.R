@@ -5,7 +5,7 @@
 my_colours <- c("#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#e49e18", 
                "#ffd92f", "#e5c494", "#b3b3b3", "#ff69b4", "#ba55d3", "#3fd7af")
 
-exploreData <- function(Experiment_path, formatted_data, ignoreBehaviours) {
+explore_data <- function(Experiment_path, formatted_data, ignoreBehaviours) {
   # summarise into a table
   labelledDataSummary <- formatted_data %>%
     filter(!activity %in% ignoreBehaviours) %>%

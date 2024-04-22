@@ -1,7 +1,7 @@
 # Script for partitioning the data and saving the test and training data
 
 
-partition_data <- function(balanced_data, folds, trainingPercentage, stratification){
+partition_data <- function(balanced_data, folds, training_percentage, stratification){
   
   Partition_data <- balanced_data %>%
     arrange(ID) %>%
@@ -10,17 +10,17 @@ partition_data <- function(balanced_data, folds, trainingPercentage, stratificat
            unique_code = paste0(ID, "_", partition)) # Create unique code
   
   
-  training_folds <- floor(trainingPercentage * folds)
+  training_folds <- floor(training_percentage * folds)
   
-  Training <- Partition_data %>% 
+  training <- Partition_data %>% 
     group_by(ID) %>%
     filter(partition %in% sample(1:folds, training_folds)) %>%  
     ungroup()
   
-  Validation <- anti_join(Partition_data, Training, by = "unique_code") %>% select(-c("unique_code"))
+  validation <- anti_join(Partition_data, training, by = "unique_code") %>% select(-c("unique_code"))
   
-  Training <- Training %>% select(-c("unique_code"))
+  training <- training %>% select(-c("unique_code"))
   
-  return(list(Training = Training,
-              Validation = Validation))
+  return(list(training = training,
+              validation = validation))
 }

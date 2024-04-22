@@ -2,12 +2,11 @@
 # PART TWO: MODEL TUNING EXPERIMENTS
 # The larger function for executing the model selection experiments
 
+generate_optimal_model <- function(otherDat, behaviours, movement_data, down_Hz, window_length, 
+                                 overlap_percent, featuresList, threshold, folds, training_percentage, 
+                                 model_architecture, trees_number) {
 
-generateOptimalModel <- function(otherDat, behaviourset, MovementData, down_Hz, window_length, 
-                                 overlap_percent, featuresList, threshold, folds, trainingPercentage, 
-                                 trees_number) {
-
-    behaviours <- MovementData[[behaviourset]]
+    behaviours <- movement_data[[behaviours]]
     relabelled_data <- relabel_activities(otherDat, behaviours)
     relabelled_data <- relabelled_data[relabelled_data$activity != "NA", ]
     
@@ -15,13 +14,17 @@ generateOptimalModel <- function(otherDat, behaviourset, MovementData, down_Hz, 
           
     balanced_data <- balance_data(processed_data, threshold)
             
-    partitioned_data <- partition_data(balanced_data, folds, trainingPercentage, stratification)
-    trDat <- na.omit(partitioned_data$Training)
+    partitioned_data <- partition_data(balanced_data, folds, training_percentage, stratification)
+    trDat <- na.omit(partitioned_data$training)
     trDat <- trDat %>% select(-partition, -ID)
-             
-    rf_model <- train_rf_model(trDat, trees_number)
     
-    return(OptimalMLModel = rf_model)
+    if (model_architecture == "RF"){
+      trained_model <- train_rf_model(trDat, trees_number)
+    } else if (model_architecture == "SVM"){
+      print("Still have to do that lol")
+    }
+    
+    return(trained_model)
   }
 
 
@@ -130,7 +133,7 @@ display_metrics <- function(confusion_matrix) {
 }
 
 
-test_optimal_model <- function(model, tstDat, probabilityReport, probabilityThreshold){
+test_optimal_model <- function(model, tstDat, probability_report, probability_threshold){
   # predict onto the testing data
   test_actual <- factor(tstDat$activity) # extract the actual names 
   test_predictors <- tstDat %>% # extract the predictors
@@ -138,7 +141,7 @@ test_optimal_model <- function(model, tstDat, probabilityReport, probabilityThre
     select(-any_of(c("activity", "ID", "row_num", "max_rows"))) %>%
     mutate(across(everything(), as.numeric))
   
-  if (probabilityReport == FALSE){
+  if (probability_report == FALSE){
     
     test_predictions <- predict(model, test_predictors) # predict
     
@@ -151,8 +154,7 @@ test_optimal_model <- function(model, tstDat, probabilityReport, probabilityThre
   }else{ # probability reports then get handled differently
     
     test_predictions <- predict(model, newdata = test_predictors, type = "prob")
-    # this gives me the probability of all classes. 
-    # now I need to extract the class above the probabilityThreshold
+    # this gives me the probability of all classes
     
     test_predictions <- data.frame(test_predictions)
     test_predictions <- test_predictions %>%
@@ -161,7 +163,7 @@ test_optimal_model <- function(model, tstDat, probabilityReport, probabilityThre
           NA
         } else {
           max_index <- which.max(x)
-          if (!is.na(max_index) && x[max_index] > probabilityThreshold) {
+          if (!is.na(max_index) && x[max_index] > probability_threshold) {
             names(x)[max_index]
           } else {
             NA
@@ -192,7 +194,7 @@ test_optimal_model <- function(model, tstDat, probabilityReport, probabilityThre
 
 
 ## apply the optimal settings and verify with graphs, etc.
-verify_optimal_results <- function(tstDat, optimalMLModel, test_type, probabilityReport, probabilityThreshold) {
+verify_optimal_results <- function(tstDat, optimal_trained_model, test_type, probability_report, probability_threshold) {
   
   # extract the test data type (for controlled comparisons)
   if(test_type == "random") {
@@ -200,10 +202,17 @@ verify_optimal_results <- function(tstDat, optimalMLModel, test_type, probabilit
   }
   
   # Test model
-  test_output <- test_optimal_model(optimalMLModel, tstDat, probabilityReport, probabilityThreshold)
+  test_output <- test_optimal_model(optimal_trained_model, tstDat, probability_report, probability_threshold)
   confusion_matrix <- test_output$confusion_matrix
   test_predictions <- test_output$test_predictions
   test_actual <- test_output$test_actual
+  
+  # try to replace the above with these previously coded functions if possible
+  #metrics_df <- evaluate_model(test_predictions, valDat, target_behaviours = NULL)
+  #summary_df <- save_model_results(metrics_df, num_individuals, num_behs, 
+                                   #down_Hz, window, overlap, feature_normalisation, feature_selection, features_list, 
+                                   #balancing_thresholds, ntrees)
+  
   
   ## make the plots from the confusion matrix
   confusion_plot <- plot_confusion(confusion_matrix)

@@ -9,15 +9,16 @@ pacman::p_load(dplyr, tidyverse, randomForest, ggpubr, caret, e1071, kohonen,
                foreach, parallel)
 
 # Load in all the scripts - assuming they are all together in the base path location
-scripts <- c("Scripts/2.ModelTuningExecuteScript.R",
-             "Scripts/3.GenerateOptimalModel.R",
+scripts <- c("Scripts/ModelTuning.R",
+             "Scripts/GenerateOptimal.R",
              "Scripts/Dictionaries.R",
              "Scripts/UserInput.R",
-             "Scripts/ReformattingData.R", "Scripts/CombiningBehaviours.R", "Scripts/GeneralFunctions.R", 
+             "Scripts/ReformattingData.R", 
              "Scripts/FeatureProcessing.R", 
-             "Scripts/SplitData.R", "Scripts/RandomForest.R", "Scripts/PartitionData.R",
+             "Scripts/SplitData.R", "Scripts/Balancing.R", "Scripts/PartitionData.R",
+             "Scripts/RandomForest.R",
              "Scripts/ValidationEvaluation.R",
-             "Scripts/UnlabelledData.R", "Scripts/Balancing.R"
+             "Scripts/UnlabelledData.R"
            ) #, "DataExploration.R")
 # Function to source a script with error handling
 source_script <- function(script_path) {
@@ -37,20 +38,27 @@ for (script in scripts) {
 }
 
 # create the save directory
+# Function for ensuring directory exists or creating it if not
+ensure_dir <- function(dir_name) {
+  if (!dir.exists(dir_name)) {
+    dir.create(dir_name, showWarnings = FALSE)
+  }
+}
+
 #Save_path <- file.path(base_path, "Output", MovementData$name, ExperimentNumber) ## previously: Experiment_path
 #ensure_dir(Save_path) # experiment directory
 
 ## LOAD AND FORMAT DATA ####
 # read in data
-MoveData <- read.csv(MovementData$data_location)
-formatted_data <- format_movement_data(MoveData, MovementData$column_subset, MovementData$time_format, num_individuals[1], MovementData$current_hz, 20)
+move_data <- read.csv(movement_data$data_location)
+formatted_data <- format_movement_data(move_data, movement_data$column_subset, movement_data$time_format, num_individuals[1], movement_data$current_hz, 20)
   
   # explore # graphs will print to the Experiment directory
-  #exploreData(Experiment_path, formatted_data, ignoreBehaviours)
-  #plot_behaviours(selectedBehaviours, formatted_data, Experiment_path, 1000, 2)
+  #explore_data(experiment_path, formatted_data, ignore_behaviours)
+  #plot_behaviours(selected_behaviours, formatted_data, experiment_path, 1000, 2)
 
 ## SPLIT OUT THE TEST SET ####
-split_data <- split_condition(formatted_data, splitMethod, trainingPercentage, validationPercentage, num_individuals, test_individuals = 2)
+split_data <- split_condition(formatted_data, split_method, training_percentage, validation_percentage, num_individuals, test_individuals = 2)
 otherDat <- na.omit(split_data$other)
 tstDat <- na.omit(split_data$test)
 test_individuals <- length(unique(tstDat$ID))
@@ -61,44 +69,45 @@ test_individuals <- length(unique(tstDat$ID))
 summary_file_path <- file.path("C:/Users/oakle/Documents/PhD docs/Chapter_Two/Output", "Summary.csv")
 
 # formulate all possible combinations
-options_df <- expand.grid(num_individuals, behaviours, downsampling_Hz, splitStratified, window, 
-                          overlap, featureNormalisation, featureSelection, 
-                          balancing_thresholds, modelArchitecture, ntree_list)
-colnames(options_df) <- c("individuals", "behaviourset", "down_Hz", "stratification", "window_length", 
-                          "overlap_percent", "normalised", "feature_selected", 
-                          "threshold", "modelArchitecture", "trees_number")
+options_df <- expand.grid(num_individuals, behaviours, downsampling_Hz, split_stratified, window, 
+                          overlap, feature_normalisation, feature_selection, 
+                          balancing_thresholds, model_architecture, ntree_list)
+colnames(options_df) <- c("num_individuals", "behaviours", "down_Hz", "split_stratified", "window", 
+                          "overlap", "feature_normalisation", "feature_selection", 
+                          "balancing_thresholds", "model_architecture", "ntrees")
 
 # set up which of them will be searched
 # grid = all
 
 # Process data, run models, and save to a parent csv
-modelOptions <- lapply(1:nrow(options_df), function(i) {
-  modelTuning(summary_file_path, 
+model_options <- lapply(1:nrow(options_df), function(i) {
+  model_tuning(summary_file_path, 
               otherDat, 
               num_individuals,
-              options_df[i, "behaviourset"], 
+              options_df[i, "behaviours"], 
               options_df[i, "down_Hz"],
-              options_df[i, "window_length"], 
-              options_df[i, "overlap_percent"],
-              options_df[i, "normalised"],
-              options_df[i, "feature_selected"],
+              options_df[i, "window"], 
+              options_df[i, "overlap"],
+              options_df[i, "feature_normalisation"],
+              options_df[i, "feature_selection"],
               featuresList,
-              options_df[i, "threshold"], 
-              options_df[i, "trees_number"],
+              options_df[i, "balancing_thresholds"], 
+              options_df[i, "ntrees"],
+              options_df[i, "model_architecture"],
               folds, 
               trainingPercentage,
-              options_df[i, "stratification"]
+              options_df[i, "split_stratified"]
               )
     }
 )
-modelOptions <- read.csv(summary_file_path)
+model_options <- read.csv(summary_file_path)
 
-summarisedModelOptions <- exploreOptions(modelOptions)
-# write.csv(summarisedModelOptions, file.path("C:/Users/oakle/Documents/PhD docs/Chapter_Two/Output", "AveragedSummary.csv"))
-write.csv(summarisedModelOptions, file.path(Experiment_path, 'SummarisedModelOptions.csv'))
+summarised_model_options <- summarise_options(model_options)
+# write.csv(summarised_model_options, file.path("C:/Users/oakle/Documents/PhD docs/Chapter_Two/Output", "AveragedSummary.csv"))
+write.csv(summarised_model_options, file.path(base_path, 'Output', 'SummarisedModelOptions.csv'))
 
 # make heatmaps
-heatmaps <- generateHeatmap(summarisedModelOptions, var1, var2)
+heatmaps <- generate_heatmap(summarised_model_options, var1, var2)
 
 # just basic for now but will make more exploration later
 # add MCC in
@@ -106,39 +115,50 @@ heatmaps <- generateHeatmap(summarisedModelOptions, var1, var2)
 # currently we manually assess the csv to find the optimal conditions
 # set up auto extraction
 
-  
 ## PART THREE: TEST OPTIMAL MODEL ON HOLD-OUT DATA ####
-OptimalMLModel <- generateOptimalModel(otherDat, 
+optimal_trained_model <- generate_optimal_model(otherDat, 
                                        behaviourset = "behaviours_2", 
-                                       MovementData, 
+                                       movement_data, 
                                        down_Hz = 20, 
                                        window_length = 0.5, 
                                        overlap_percent = 50, 
-                                       featuresList, 
+                                       features_list, 
                                        threshold = 500, 
                                        folds = 10, 
-                                       trainingPercentage = 0.6, 
+                                       training_percentage = 0.6, 
+                                       model_architecture = "RF",
                                        trees_number = 500)
 # save for later
-model_file_path <- file.path(Experiment_path, "6BehOptimalModel.rda")
-save(OptimalMLModel, file = model_file_path)
+model_file_path <- file.path(base_path, 'Output', "OptimalTrainedModel.rda")
+save(optimal_trained_model, file = model_file_path)
 
 # assess performance on the hold-out data
 # relabel and process the tstDat # turn this into a function
 behaviours <- MovementData[["behaviours_2"]]
 relabelled_data <- relabel_activities(tstDat, behaviours)
 relabelled_data <- relabelled_data[relabelled_data$activity != "NA", ]
-processed_data <- process_data(relabelled_data, featuresList, window_length = 0.5, overlap_percent = 50, 20) # last one is down_Hz
+processed_data <- process_data(relabelled_data, features_list, window_length = 0.5, overlap_percent = 50, 20) # last one is down_Hz
 tstDat2 <- processed_data %>% select(-ID)
 
-optimal_results <- verify_optimal_results(tstDat2, OptimalMLModel, test_type = "test", 
-                                          probabilityReport = FALSE,  probabilityThreshold = NULL)
+optimal_results <- verify_optimal_results(tstDat2, optimal_trained_model, test_type = "test", 
+                                          probability_report = FALSE,  probability_threshold = NULL)
 
 print(optimal_results$confusion_matrix)
 print(optimal_results$confusion_plot)
 print(optimal_results$stacked_plot)
 #print(optimal_results$NA_loss_plot)
 print(optimal_results$metrics)
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## PART FOUR: APPLYING TO UNLABELLED DATA ####  

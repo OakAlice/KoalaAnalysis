@@ -1,5 +1,6 @@
 # Reformatting data based on the user input variables
 
+# format the data with the right columns etc.
 format_movement_data <- function(data, columnSubset, timeFormat, num_individuals = NULL, current_Hz = NULL, desired_Hz = NULL) {
   
   # select and rename the relevant columns
@@ -32,4 +33,20 @@ format_movement_data <- function(data, columnSubset, timeFormat, num_individuals
   
   # return the data
   return(data)
+}
+
+# Function to subset and rename columns to match the general format
+subset_and_rename <- function(df, columnSubset) {
+  # Check if all columns in the mapping exist in the dataframe
+  if (all(names(columnSubset) %in% colnames(df))) {
+    # Subset the dataframe
+    df <- df[, names(columnSubset)]
+    
+    # Rename the columns
+    colnames(df) <- columnSubset
+    
+    return(df)
+  } else {
+    stop("Some columns from the mapping are missing in the dataframe.")
+  }
 }

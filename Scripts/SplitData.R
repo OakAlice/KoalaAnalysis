@@ -1,8 +1,8 @@
 # Code to create the training and testing data
 
 # process the data
-split_condition <- function(formatted_data, splitMethod, 
-                            trainingPercentage, validationPercentage, 
+split_condition <- function(formatted_data, split_method, 
+                            training_percentage, validation_percentage, 
                             num_individuals, test_individuals = NA) {
   
   dat <- formatted_data# %>% na.omit()
@@ -11,21 +11,21 @@ split_condition <- function(formatted_data, splitMethod,
     df %>% select(-any_of(c("time", "n", "X", "over_threshold", "max_rows")))
   }
   
-  testingPercentage <- 1 - trainingPercentage - validationPercentage
-  prop <- c((1- testingPercentage), testingPercentage)  # Proportions for each group
+  testing_percentage <- 1 - training_percentage - validation_percentage
+  prop <- c((1- testing_percentage), testing_percentage)  # Proportions for each group
   
-  if (splitMethod == "random") {
+  if (split_method == "random") {
     # set up valiables
     n <- nrow(dat)
     
     # Generate random indices for every row
     indices <- sample(1:2, n, replace = TRUE, prob = prop)
     
-    # splitMethod data based on those random indices
+    # split_method data based on those random indices
     tstDat <- dat[indices == 1, ] %>% remove_columns()
     otherDat <- dat[indices == 2, ] %>% remove_columns()
     
-  } else if (splitMethod == "chronological") {
+  } else if (split_method == "chronological") {
     if ("ID" %in% colnames(dat)) { 
       sorted_dat <- arrange(dat, ID, time)
       individuals <- unique(sorted_dat$ID)
@@ -57,13 +57,13 @@ split_condition <- function(formatted_data, splitMethod,
       otherDat <- dat[0:sample_sizes[1], ] %>% remove_columns() 
       tstDat <- dat[(length(dat$ID) - sample_sizes[2]):length(dat$ID), ] %>% remove_columns()
     }
-  } else if (splitMethod == "LOIO" | splitMethod == "SparkesKoalaValidation") {
-    # Ensure test_individuals is provided for LOIO splitMethod
+  } else if (split_method == "LOIO" | split_method == "SparkesKoalaValidation") {
+    # Ensure test_individuals is provided for LOIO split_method
     if (is.null(test_individuals)) {
-      stop("test_individuals must be provided for LOIO splitMethod")
+      stop("test_individuals must be provided for LOIO split_method")
     }
     
-    if (splitMethod == "SparkesKoalaValidation"){
+    if (split_method == "SparkesKoalaValidation"){
       selected_ids <- test_individuals # have to manually set it for some daatsets
       
     } else {

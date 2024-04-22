@@ -3,7 +3,8 @@
 # do the test, and extract the results for the overall performance as well as the target behaviours
 # target behaviours set to NULL as default
 
-evaluate_model <- function(test_predictions, tstDat, targetBehaviours = NULL) {
+evaluate_model <- function(test_predictions, tstDat, target_behaviours = NULL) {
+  
   test_actual <- factor(tstDat$activity)
   unique_classes <- union(levels(test_actual), levels(test_predictions))
   
@@ -43,9 +44,9 @@ evaluate_model <- function(test_predictions, tstDat, targetBehaviours = NULL) {
     Mean_MCC = mean(mcc)
   )
   
-  # If targetBehaviours are specified, calculate metrics for them
-  if (!is.null(targetBehaviours)) {
-    for (behaviour in targetBehaviours) {
+  # If target_behaviours are specified, calculate metrics for them
+  if (!is.null(target_behaviours)) {
+    for (behaviour in target_behaviours) {
       behaviour_index <- which(unique_classes == behaviour)
       if (length(behaviour_index) > 0) {
         TP <- confusion_matrix[behaviour_index, behaviour_index]

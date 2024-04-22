@@ -1,6 +1,23 @@
-# Given the window sizes, overlaps, and list of features specified on the main page
+# Given the window sizes, overlaps, behaviours, and list of features specified on the main page
 # process the data by that specification
 
+
+# relabel the single behaviours into generalised classes
+relabel_activities <- function(formatted_data, relabelledBehaviours){
+  relabelled_data <- formatted_data %>%
+    mutate(activity = sapply(activity, function(act) {
+      for (new_activity in names(relabelledBehaviours)) {
+        if (act %in% relabelledBehaviours[[new_activity]]) {
+          return(new_activity)
+        }
+      }
+      return(as.character(act))
+    }))
+  
+  return(relabelled_data)
+}
+
+# specific functions for some specific variables
 calculate_autocorrelation <- function(axis_data, lag) {
   acf_result <- acf(axis_data, lag.max = lag, plot = FALSE)
   autocorrelation <- acf_result$acf[lag + 1]
@@ -20,7 +37,6 @@ calculate_zero_crossing <- function(window_data) {
   zero_crossings <- sum(abs(diff(signs)) > 0)
   return(zero_crossings)
 }
-
 
 compute_features <- function(window_chunk, featuresList) {
   

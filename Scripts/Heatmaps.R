@@ -10,7 +10,7 @@ var2 <- summarisedModelOptions$ntree
 heat <- summarisedModelOptions$General_accuracy
 data <- summarisedModelOptions
 
-generateHeatmap <-  function(data, heat, var1, var2){
+generate_heatmap <-  function(data, heat, var1, var2){
 
   map_2d <- ggplot(data, aes(x = var1, y= var2, fill = heat))+
     geom_tile() +
