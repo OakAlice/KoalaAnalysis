@@ -1,6 +1,9 @@
 ## Basic Data Exploration
 # before beginning to build to model, generally explore the data
 
+# experiment_path <- "C:/Users/oakle/Documents/PhD docs/Chapter_Two/LabelledDataSets/Vehkaoja_Dog"
+
+
 ### PART ONE: MAKE A PLOT ####
 my_colours <- c("#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#e49e18", 
                "#ffd92f", "#e5c494", "#b3b3b3", "#ff69b4", "#ba55d3", "#3fd7af")
@@ -8,15 +11,15 @@ my_colours <- c("#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#e49e18"
 explore_data <- function(Experiment_path, formatted_data, ignoreBehaviours) {
   # summarise into a table
   labelledDataSummary <- formatted_data %>%
-    filter(!activity %in% ignoreBehaviours) %>%
+    filter(!activity %in% ignore_behaviours) %>%
     count(ID, activity)
   
   # account for the HZ, convert to seconds
   labelledDataSummaryplot <- labelledDataSummary %>%
-    mutate(seconds = n/current_Hz)
+    mutate(seconds = n/movement_data$current_hz)
   
   # Plot the stacked bar graph
-  behaviourIndividualDistribution <- ggplot(labelledDataSummaryplot, aes(x = activity, y = seconds, fill = ID)) +
+  behaviourIndividualDistribution <- ggplot(labelledDataSummaryplot, aes(x = activity, y = seconds, fill = as.factor(ID))) +
     geom_bar(stat = "identity") +
     labs(x = "Activity",
          y = "Seconds") +
@@ -29,11 +32,15 @@ explore_data <- function(Experiment_path, formatted_data, ignoreBehaviours) {
           panel.grid.minor = element_blank())
   
   # save the image
-  ggsave(file.path(Experiment_path, "behaviourIndividualDistribution.png"), plot = behaviourIndividualDistribution)
+  ggsave(file.path(experiment_path, "behaviourIndividualDistribution.png"), plot = behaviourIndividualDistribution)
 }
 
 # PART TWO: DISPLAYING SAMPLES OF EACH TRACE TYPE ####
-plot_behaviours <- function(behaviourList, formatted_data, Experiment_path, n_samples, n_col) {
+#plot_behaviours(movement_data$behaviours_1, formatted_data, experiment_path, n_samples, n_col)
+ #behaviours <- movement_data$behaviours_1 
+# behaviour <- "Sitting"
+# n_samples <-  250
+plot_behaviours <- function(behaviours, formatted_data, experiment_path, n_samples, n_col) {
   # Function to create the plot for each behavior
   plot_behaviour <- function(behaviour, n_samples) {
     df <- formatted_data %>%
@@ -55,10 +62,21 @@ plot_behaviours <- function(behaviourList, formatted_data, Experiment_path, n_sa
       theme(panel.grid = element_blank())
   }
   
-  # Create plots for each behavior
-  plots <- purrr::map(behaviourList, ~ plot_behaviour(.x, n_samples))
+  # Create plots for each behavior (with error catching)
+  plots <- purrr::map(behaviours, function(behaviour) {
+    tryCatch(
+      {
+        plot_behaviour(behaviour, n_samples)
+      },
+      error = function(e) {
+        message("Skipping plot for ", behaviour, ": ", e$message)
+        NULL  # Return NULL to indicate skipping
+      }
+    )
+  })
   
   # Combine plots into a single grid
+  # plots <- plots[1:13]
   grid_plot <- cowplot::plot_grid(plotlist = plots, ncol = n_col)
   
   # Save the grid plot

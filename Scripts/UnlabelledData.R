@@ -1,5 +1,61 @@
 # Assuming that the raw .csv for for each individual is in the folder you specify
 
+## Not ready, just screwing around ##
+
+# chunked folder
+folders <- list.dirs(MovementData$Unlabelled_location, full.names = FALSE, recursive = FALSE)
+
+current_Hz <- 50
+optimal_Hz <- 50
+
+load(model_file_path) # load it back in, comes as OptimalMLModel
+
+prediction_outcome <- data.frame()
+
+for (folder in folders) {
+  
+  # read them all into a single csv
+  folder_path <- file.path(MovementData$Unlabelled_location, folder)
+  combined_data <- bind_rows(lapply(list.files(folder_path, pattern = "\\.csv$", full.names = TRUE), read_csv))
+  write_csv(combined_data, file.path(MovementData$Unlabelled_location, paste0(folder, "_full.csv")))
+  
+  #} # uncomment to perform the predictions too
+  #folder <- folders[1]
+  files <- list.files(file.path(MovementData$Unlabelled_location, folder), full.names = TRUE, recursive = FALSE)
+  
+  for (file in files) {
+    #file <- files[1]
+    unlabelled_file <- read.csv(file)
+    
+    # extract the name
+    file_name <- basename(file)
+    ID_name <- str_extract(file_name, "(?<=_)(.*?)(?=_)")
+    
+    # organise
+    formatted_file <- formattingUnlabelled(unlabelled_file, ID_name, columnSubsetUnlabelled, current_Hz, optimal_Hz, columnSubsetTraining)
+    processed_file <- process_data(formatted_file, featuresList, optimal_window, optimal_overlap, optimal_Hz)
+    predictions <- predictingUnlabelled(processed_file, OptimalMLModel)
+    
+    # summarise per timevalue
+    summarised_predictions <- aggregate_windows(predictions$predict_file, summarisation_window)
+    
+    # append to document
+    prediction_outcome <- rbind(summarised_predictions, prediction_outcome)
+  }
+}
+
+#  prediction_outcome <- summarise(prediction_outcome, 1)
+# save it
+prediction_file_path <- file.path(Experiment_path, 'Predictions.csv')
+write.table(prediction_outcome, file = prediction_file_path, sep = ",", row.names = FALSE, col.names = TRUE, append = FALSE, quote = FALSE)
+# plot it
+grid_plot <- behaviour_grid(prediction_outcome)
+
+
+
+
+
+
 # mode function
   Mode <- function(x) {
     ux <- unique(x)

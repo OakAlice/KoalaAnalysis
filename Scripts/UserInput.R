@@ -18,7 +18,7 @@ source(file.path(base_path, "Scripts/Dictionaries.R"))
   selected_behaviours <- movement_data$behaviours_1
   behaviours <- "behaviours_1"
   behaviour_options <- NULL
-  ignore_behaviours <- c("<NA>")
+  ignore_behaviours <- c("<NA>", "<undefined>")
   folds <- 3 # unless I can calculate this from the number of individuals
   
   # Proportion as a decimal percentage
@@ -56,8 +56,11 @@ source(file.path(base_path, "Scripts/Dictionaries.R"))
   probability_threshold <- 0 # as a percentage, if probability is true
   
 ## HYPERMARAMETERS ####
-  #data_presentations <- c(100, 200) # for the SOM
-  ntree_list <- c(100, 250, 500, 1000) # for RF
+  model_specific_hyperparmaters <- list(
+    RF = c(ntrees = c(100, 250, 500, 1000)),
+    SVM = c(kernel = "linear", cost = 1)
+    
+  )
   
   
   
