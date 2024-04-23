@@ -1,10 +1,11 @@
 # Applying the Random Forest
 
 # select the predictors and the target, train with variable ntree number
-train_model <- function(trDat,
+train_model <- function(trDat, model_architecture,
                            num_trees = NULL, # RF
                            kernel = NULL, cost = NULL, # SVM
-                           ) {
+                           hidden = NULL # MLP
+                        ) {
 
   predictors <- trDat %>% 
     ungroup() %>%
@@ -30,7 +31,7 @@ train_model <- function(trDat,
       skip()
       
   } else if (model_architecture == "MLP") {
-      #model <- neuralnet::neuralnet(target ~ ., data = predictors, hidden = 3, linear.output = FALSE)
+      #model <- neuralnet::neuralnet(target ~ ., data = predictors, hidden = hidden, linear.output = FALSE)
       # taking too long, haven't tested
       skip()
   }
@@ -40,7 +41,7 @@ train_model <- function(trDat,
 
 # PART TWO: TESTING
 # prepare the test data in the same way and then extract the test data
-predict_rf_model <- function(model, testingData) {
+predict_model <- function(model, model_architecture, testingData) {
   
   test_predictors <- testingData %>%
     ungroup() %>%

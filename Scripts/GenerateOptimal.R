@@ -1,6 +1,54 @@
 # generate the optimal model
-# PART TWO: MODEL TUNING EXPERIMENTS
-# The larger function for executing the model selection experiments
+
+
+## PART THREE: TEST OPTIMAL MODEL ON HOLD-OUT DATA ####
+optimal_trained_model <- generate_optimal_model(otherDat, 
+                                                behaviourset = "behaviours_2", 
+                                                movement_data, 
+                                                down_Hz = 20, 
+                                                window_length = 0.5, 
+                                                overlap_percent = 50, 
+                                                features_list, 
+                                                threshold = 500, 
+                                                folds = 10, 
+                                                training_percentage = 0.6, 
+                                                model_architecture = "RF",
+                                                trees_number = 500)
+# save for later
+model_file_path <- file.path(base_path, 'Output', "OptimalTrainedModel.rda")
+save(optimal_trained_model, file = model_file_path)
+
+# assess performance on the hold-out data
+# relabel and process the tstDat # turn this into a function
+behaviours <- MovementData[["behaviours_2"]]
+relabelled_data <- relabel_activities(tstDat, behaviours)
+relabelled_data <- relabelled_data[relabelled_data$activity != "NA", ]
+processed_data <- process_data(relabelled_data, features_list, window_length = 0.5, overlap_percent = 50, 20) # last one is down_Hz
+tstDat2 <- processed_data %>% select(-ID)
+
+optimal_results <- verify_optimal_results(tstDat2, optimal_trained_model, test_type = "test", 
+                                          probability_report = FALSE,  probability_threshold = NULL)
+
+print(optimal_results$confusion_matrix)
+print(optimal_results$confusion_plot)
+print(optimal_results$stacked_plot)
+#print(optimal_results$NA_loss_plot)
+print(optimal_results$metrics)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# FUNCTIONS ####
 
 generate_optimal_model <- function(otherDat, behaviours, movement_data, down_Hz, window_length, 
                                  overlap_percent, featuresList, threshold, folds, training_percentage, 

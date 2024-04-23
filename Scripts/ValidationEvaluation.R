@@ -73,12 +73,13 @@ evaluate_model <- function(test_predictions, tstDat, target_behaviours = NULL) {
 
 # PART FOUR: SAVE ALL THE RESULTS
 save_model_results <- function(
-    metrics_df, train_individuals, num_behs, 
+    metrics_df, dataset_tag, train_individuals, num_behs, 
     downsampling_Hz, window, overlap, normalisation, selection, featuresList, 
-    threshold, trees_number) {
+    threshold, trees_number, kernel, cost) {
   
   # Prepare hyperparameters
   hyperparameters <- list(
+    Dataset = as.character(dataset_tag),
     Hz = as.numeric(downsampling_Hz),
     individuals = as.numeric(train_individuals),
     number_behaviours = as.numeric(num_behs),
@@ -88,7 +89,9 @@ save_model_results <- function(
     overlap_percent = as.numeric(overlap),
     feature_normalised = as.character(normalisation),
     feature_selection = as.character(selection),
-    ntree = as.numeric(trees_number)
+    ntree = as.numeric(trees_number),
+    kernel = as.character(kernel),
+    cost = as.numeric(cost)
   )
   
   # Ensure dynamic metrics are coerced to numeric where possible, else character
