@@ -1,0 +1,9 @@
+This is the instructions for using the code provided for the RFKoalaAnalysis. 
+
+
+## Why was this code written
+Code was originally written to predict behaviours in koala data collected by Gabby (PhD student at UQ). It is designed to use Random Forest supervised machine learning. The scripts step through each stage of the analysis, from splitting out the test data, visualising the data, reclustering the behaviours, tuning hyperparameters for a ML model, and then generating and verifying this final model design. The primary goal of the ML model was to detect walking, with stationary (sleeping/resting) and feeding as secondary targets.
+
+While mostly following a typical ML approach, this analysis has been customised in several specific ways that are unlikely to transfer to other scenarios. Firstly, labelled data mostly comes from 2 captive individuals with sparing data from a few free-roaming individuals, while the model is intended to be used on those same and new free-roaming individuals. The captive data (drawn from Elsa and Meeka) is not always representative of the behaviours of the free-roaming individuals, therefore, the free-roaming data must be incorporated into the model development and validation... but only some of it. It's complicated. Gabby's paper will explain more. Long story short, the model train/validation/test split is a bit unusual.
+
+## How the script works
