@@ -1,0 +1,12 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+*/Data/*
+*/Plots/*
+
+
+*.csv
+*.png
+*.pdf
