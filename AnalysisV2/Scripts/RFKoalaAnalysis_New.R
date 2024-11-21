@@ -50,20 +50,22 @@ if(file.exists(file.path(base_path, "Data", "CleanLabelledData.csv"))){
 # Split test data out and load other data ---------------------------------
 source(file.path(base_path, "Scripts", "SplitTestData_New.R"))
 
-# Balance samples in training data ----------------------------------------
-# Because Meeka and Elsa have so much data, I need to downsample this
-# I did this manually, but if you hit source it will just pull in the end result
-source(file.path(base_path, "Scripts", "BalanceOtherData_New.R"))
-
 # Generate features for training data -------------------------------------
 # currently set to only process a very small number of windows as it takes forever
 source(file.path(base_path, "Scripts", "GenerateFeatures_New.R"))
 
-# Visualise behavioural clusters ------------------------------------------
-# this will save plots to folder
-# there are hardcoded variables to change in this script
-source(file.path(base_path, "Scripts", "VisualiseBehaviours_New.R"))
- 
+# Visualise behaviours ----------------------------------------------------
+# this will save an html report 
+# there are hard coded variables to change in this script
+
+source(file.path(base_path, "Scripts", "RenderingMarkdown_New.R"))
+
+
+
+# Balance samples in training data ----------------------------------------
+# Because Meeka and Elsa have so much data, I need to downsample this
+# I did this manually, but if you hit source it will just pull in the end result
+source(file.path(base_path, "Scripts", "BalanceOtherData_New.R"))
 
 
 

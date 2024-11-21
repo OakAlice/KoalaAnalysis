@@ -1,0 +1,112 @@
+---
+title: "Visualisation Report"
+output: html_document
+date: "`r Sys.Date()`"
+params:
+  base_path:
+    value: x
+  sample_rate:
+    value: x
+  n_samples:
+    value: 100
+  n_col:
+    value: 4
+  window_length:
+    value: 1
+  overlap_percent:
+    value: 0
+  minimum_distance:
+    value: 0.1
+  shape_metric:
+    value: "euclidean"
+  num_neighbours:
+    value: 10
+  samples_to_analyse:
+    value: 100
+  
+---
+
+<!-- Unlike the data visualisation pipeline that Ryley is working on, this is a specific visualisation workflow for the koala data. This script will not generalise to other datasets. -->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, fig.width = 8, fig.height = 4) # smaller plots
+
+library(data.table)
+library(purrr)
+library(tidyverse)
+library(kableExtra)
+```
+
+```{r load data, include= FALSE}
+# source functions from another file
+source(file.path(params$base_path, "Scripts", "VisualiseBehaviours_New.R"))
+
+# load in the raw data and cleaned feature data (e.g., remove redundant and NA features)
+raw_data <- fread(file.path(params$base_path, "Data", "RawOtherData.csv"))
+feature_data <- fread(file.path(params$base_path, "Data", "FeatureOtherData.csv"))
+```
+
+### Original data
+This is the data as I received it. The classes are highly imbalanced which can lead to skewed performance.
+```{r plot data volume, echo = FALSE}
+activity_by_id <- plotActivityByID(data = raw_data, frequency = params$sample_rate)
+activity_by_id$plot
+```
+
+Additionally, we should look at the quality. This can be assessed by looking at examples of each of the traces.
+
+```{r generate trace plots, echo = FALSE}
+tracePlots <- plotTraceExamples(
+  behaviours = unique(raw_data$Activity),
+  data = raw_data,
+  individuals = length(unique(raw_data$ID)),
+  n_samples = as.numeric(params$n_samples),
+  n_col = as.numeric(params$n_col)
+)
+tracePlots$grid_plot
+```
+
+From this I can clean it up a bit by removing the meaning categories (blank and NA) then generate a small number of features from a subset of the data. We then use this feature data to generate a basic UMAP that could suggest clustering relationships between classes.
+
+```{r process a sample of features, include = FALSE}
+if(file.exists(file.path(params$base_path, "Data", "SampleFeatureData.csv"))){
+  sample_feature_data <- fread(file.path(params$base_path, "Data", "SampleFeatureData.csv"))
+} else {
+  sample_data <- raw_data %>% 
+    filter(!Activity %in% c("NaN", "")) %>% 
+    group_by(Activity, ID) %>%
+    slice(1:params$samples_to_analyse) %>% as.data.table()
+  
+  sample_feature_data <- generateFeatures(
+    window_length = as.numeric(params$window_length), 
+    sample_rate = as.numeric(params$sample_rate), 
+    overlap_percent = as.numeric(params$overlap_percent), 
+    raw_data = sample_data, 
+    features_type = c("statistical", "timeseries"))
+  
+  fwrite(sample_feature_data, file.path(params$base_path, "Data", "SampleFeatureData.csv"))
+}
+
+sample_feature_cols <- removeBadFeatures(sample_feature_data, threshold = 0.5) 
+selected_feature_data <- sample_feature_data %>%
+  select(c(!!!syms(sample_feature_cols), "Activity")) %>% 
+  na.omit()
+```
+
+```{r UMAP Visualisation, echo = FALSE}
+numeric_features <- selected_feature_data %>% select(-"Activity")
+labels <- selected_feature_data %>% select("Activity")
+
+UMAPVis <- plotUMAPVisualisation(numeric_features, labels, minimum_distance = params$minimum_distance, num_neighbours = params$num_neighbours, shape_metric = params$shape_metric, spread = 2)
+UMAPVis$UMAP_2D_plot
+```
+
+
+
+### Grouping the behaviours
+Because in Gabby's research project she is only looking for some specific behaviours, I can simplify my analysis and improve performance by grouping stuff together into generalised classes. The classes I want to try to find are 'Walking', 'Still', 'Foraging/Eating' and 'Tree Movement' (with this last class being a generalised assortment).
+
+
+
+
+

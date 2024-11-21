@@ -27,7 +27,8 @@ plotTraceExamples <- function(behaviours, data, individuals, n_samples, n_col) {
   # Combine plots into a single grid
   grid_plot <- cowplot::plot_grid(plotlist = plots, ncol = n_col)
   
-  return(grid_plot)
+  return(list(plots = plots, 
+                 grid_plot = grid_plot))
 }
 
 # Function to create the plot for each behavior
@@ -377,80 +378,80 @@ removeBadFeatures <- function(feature_data, threshold) {
 
 
 
-
-
-# Load in and set up ------------------------------------------------------
-raw_data <- fread(file.path(base_path, "Data", "RawOtherData.csv"))
-feature_data <- fread(file.path(base_path, "Data", "FeatureOtherData.csv"))
-
-# Volume of data per class / individual -----------------------------------
-behaviours <- unique(data$GeneralisedActivity)
-individuals <- length(unique(data$ID))
-n_samples <- 200
-n_col <- 4
-
-pdf(file = file.path(base_path, "Plots", "ActivityVolumeByID.pdf"),
-width = 16, # The width of the plot in inches
-height = 8)
-ActivityByID <- plotActivityByID(raw_data, frequency = sample_rate)
-ActivityByID$plot
-dev.off()
-
-# Examples of trace -------------------------------------------------------
-pdf(file = file.path(base_path, "Plots", "TraceExamples.pdf"),
-    width = 16, # The width of the plot in inches
-    height = 8)
-plotTraceExamples(behaviours, raw_data, individuals, n_samples, n_col = n_col)
-dev.off()
-
-# Duration of each behavioural bout ---------------------------------------
-pdf(file = file.path(base_path, "Plots", "BehaviourDuration.pdf"),
-    width = 16, # The width of the plot in inches
-    height = 8)
-BehaviourDuration <- plotBehaviourDuration(raw_data, sample_rate)
-BehaviourDuration$duration_plot
-dev.off()
-
-
-# Basic Feature Filtering -------------------------------------------------
-# remove obsolete and uninformative features
-
-filtered_feature_columns <- removeBadFeatures(feature_data, threshold = 0.95)
-filtered_feature_data <-feature_data[, .SD, .SDcols = c(filtered_feature_columns, "Time", "ID", "Activity")]
-filtered_feature_data <- filtered_feature_data %>% na.omit()
-
-# UMAP --------------------------------------------------------------------
-minimum_distance = 0.1
-num_neighbours = 10
-shape_metric = 'cosine'
-spread = 1
-
-numeric_features <- filtered_feature_data %>% 
-  select(-c("Time", "ID", "Activity")) %>% 
-  mutate(across(everything(), as.numeric))
-labels <- feature_data %>% select("Activity")
-
-pdf(file = file.path(base_path, "Plots", "UMAPExample1.pdf"),
-    width = 16, # The width of the plot in inches
-    height = 8)
-UMAPVisualisations <- plotUMAPVisualisation(numeric_features, labels, minimum_distance, num_neighbours, shape_metric, spread)
-UMAPVisualisations$UMAP_2D_plot
-dev.off()
-
-# Explore feature space ---------------------------------------------------
-pdf(file = file.path(base_path, "Plots", "BoxplotFeatureAverages.pdf"),
-    width = 32, # The width of the plot in inches
-    height = 16)
-boxplotFeatureData(feature_data = filtered_feature_data, n_col = 4)
-dev.off()
-
-pdf(file = file.path(base_path, "Plots", "FrequencyFeatureDistribution.pdf"),
-    width = 16, # The width of the plot in inches
-    height = 8)
-frequencyplotFeatureData(feature_data = filtered_feature_data, n_col = 5)
-dev.off()
-
-# Unsupervised SOM Clustering ---------------------------------------------
-
-
-
+# 
+# 
+# # Load in and set up ------------------------------------------------------
+# raw_data <- fread(file.path(base_path, "Data", "RawOtherData.csv"))
+# feature_data <- fread(file.path(base_path, "Data", "FeatureOtherData.csv"))
+# 
+# # Volume of data per class / individual -----------------------------------
+# behaviours <- unique(data$GeneralisedActivity)
+# individuals <- length(unique(data$ID))
+# n_samples <- 200
+# n_col <- 4
+# 
+# pdf(file = file.path(base_path, "Plots", "ActivityVolumeByID.pdf"),
+# width = 16, # The width of the plot in inches
+# height = 8)
+# ActivityByID <- plotActivityByID(raw_data, frequency = sample_rate)
+# ActivityByID$plot
+# dev.off()
+# 
+# # Examples of trace -------------------------------------------------------
+# pdf(file = file.path(base_path, "Plots", "TraceExamples.pdf"),
+#     width = 16, # The width of the plot in inches
+#     height = 8)
+# plotTraceExamples(behaviours, raw_data, individuals, n_samples, n_col = n_col)
+# dev.off()
+# 
+# # Duration of each behavioural bout ---------------------------------------
+# pdf(file = file.path(base_path, "Plots", "BehaviourDuration.pdf"),
+#     width = 16, # The width of the plot in inches
+#     height = 8)
+# BehaviourDuration <- plotBehaviourDuration(raw_data, sample_rate)
+# BehaviourDuration$duration_plot
+# dev.off()
+# 
+# 
+# # Basic Feature Filtering -------------------------------------------------
+# # remove obsolete and uninformative features
+# 
+# filtered_feature_columns <- removeBadFeatures(feature_data, threshold = 0.95)
+# filtered_feature_data <-feature_data[, .SD, .SDcols = c(filtered_feature_columns, "Time", "ID", "Activity")]
+# filtered_feature_data <- filtered_feature_data %>% na.omit()
+# 
+# # UMAP --------------------------------------------------------------------
+# minimum_distance = 0.1
+# num_neighbours = 10
+# shape_metric = 'cosine'
+# spread = 1
+# 
+# numeric_features <- filtered_feature_data %>% 
+#   select(-c("Time", "ID", "Activity")) %>% 
+#   mutate(across(everything(), as.numeric))
+# labels <- feature_data %>% select("Activity")
+# 
+# pdf(file = file.path(base_path, "Plots", "UMAPExample1.pdf"),
+#     width = 16, # The width of the plot in inches
+#     height = 8)
+# UMAPVisualisations <- plotUMAPVisualisation(numeric_features, labels, minimum_distance, num_neighbours, shape_metric, spread)
+# UMAPVisualisations$UMAP_2D_plot
+# dev.off()
+# 
+# # Explore feature space ---------------------------------------------------
+# pdf(file = file.path(base_path, "Plots", "BoxplotFeatureAverages.pdf"),
+#     width = 32, # The width of the plot in inches
+#     height = 16)
+# boxplotFeatureData(feature_data = filtered_feature_data, n_col = 4)
+# dev.off()
+# 
+# pdf(file = file.path(base_path, "Plots", "FrequencyFeatureDistribution.pdf"),
+#     width = 16, # The width of the plot in inches
+#     height = 8)
+# frequencyplotFeatureData(feature_data = filtered_feature_data, n_col = 5)
+# dev.off()
+# 
+# # Unsupervised SOM Clustering ---------------------------------------------
+# 
+# 
+# 

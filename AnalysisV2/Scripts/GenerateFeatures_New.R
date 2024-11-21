@@ -227,37 +227,6 @@ generateStatisticalFeatures <- function(window_chunk, down_Hz) {
     maxVDBA = max(VDBA, na.rm = TRUE)
   )]
   
-  # Create all unique axis pairs
-  #axis_pairs <- CJ(axis1 = available_axes, axis2 = available_axes)[axis1 < axis2]
-  
-  # Calculate correlations for each
-  #axis_correlations <- axis_pairs[, {
-  #  vec1 <- window_chunk[[axis1]]
-  #  vec2 <- window_chunk[[axis2]]
-  
-  # Check for non-NA and non-zero variance
-  #  var_vec1 <- var(vec1, na.rm = TRUE)
-  #  var_vec2 <- var(vec2, na.rm = TRUE)
-  
-  #  if (!is.na(var_vec1) && var_vec1 != 0 && !is.na(var_vec2) && var_vec2 != 0) {
-  #    complete_cases <- complete.cases(vec1, vec2)
-  #    if (any(complete_cases)) {
-  #      cor_value <- cor(vec1[complete_cases], vec2[complete_cases])
-  #    } else {
-  #      cor_value <- NA  # No complete pairs
-  #    }
-  #  } else {
-  #    cor_value <- NA  # No variability or NA in variance
-  #  }
-  
-  #  list(cor_value)
-  #}, by = .(axis1, axis2)]
-  
-  # Add correlations to result data.table
-  #for (i in seq_len(nrow(axis_correlations))) {
-  #  result[, paste0("cor_", axis_correlations$axis1[i], "_", axis_correlations$axis2[i]) := axis_correlations$cor_value[i]]
-  #}
-  
   return(result)
 }
 
@@ -268,6 +237,7 @@ if (file.exists(file.path(base_path, "Data", "FeatureOtherData.csv"))){
 } else {
   
   data1 <- fread(file.path(base_path, "Data", "RawOtherData.csv"))
+  data1 <- data1 %>% group_by(Activity, ID) %>% slice(1:100)
   
   for (id in unique(data1$ID)){
     data <- data1 %>% filter(ID == id) %>% as.data.table()
