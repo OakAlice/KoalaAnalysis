@@ -10,6 +10,7 @@ library(umap)
 library(caret)
 library(ggpubr) # for retrieving the legend in one of my plots
 library(randomForest)
+library(rBayesianOptimization)
 
 # Hardcoded variables -----------------------------------------------------
 #base_path <- "D:/KoalaAnalysis/AnalysisV2"

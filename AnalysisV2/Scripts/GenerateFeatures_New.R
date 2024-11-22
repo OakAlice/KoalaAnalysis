@@ -255,6 +255,7 @@ if (file.exists(file.path(base_path, "Data", "FeatureOtherData.csv"))){
   feature_files <- list.files(file.path(base_path, "Data"), "*_FeatureOtherData.csv", full.names = TRUE) 
   feature_data_other <- lapply(feature_files, read_csv, show_col_types = FALSE)
   feature_data_other <- bind_rows(feature_data_other)
+  fwrite(feature_data_other, file.path(base_path, "Data", "FeatureOtherData.csv"))
 }
 
 

@@ -2,14 +2,14 @@
 # Hyperparameter Optimisation ---------------------------------------------
 
 # main call that splits data, generates function, and validates
-RFModelOptimisation <- function(feature_data, number_trees){
+RFModelOptimisation <- function(feature_data, number_trees, mtry, max_depth){
   
     # remove bad features
     feature_data <- as.data.table(feature_data)
     clean_cols <- removeBadFeatures(feature_data, var_threshold = 0.5, corr_threshold = 0.9)
     clean_feature_data <- feature_data %>%
       select(c(!!!syms(clean_cols), "Activity", "ID")) %>% 
-      select(-Time) %>%
+      #select(-Time) %>%
       na.omit()
   
   
@@ -56,7 +56,10 @@ RFModelOptimisation <- function(feature_data, number_trees){
         RF_args <- list(
           x = as.matrix(training_data[, setdiff(names(training_data), "Activity"), with = FALSE]),
           y = as.factor(training_data$Activity),
-          ntree = number_trees
+          ntree = number_trees,
+          class_weight = 'balanced',
+          mtry = mtry,
+          max_depth = max_depth
         )
         
         RF_model <- do.call(randomForest, RF_args)
@@ -71,7 +74,7 @@ RFModelOptimisation <- function(feature_data, number_trees){
       
       #### Validate the model ####
       tryCatch({
-        numeric_validation_data <- as.matrix(validation_data[, !("Activity" %in% names(validation_data)), with = FALSE])
+        numeric_validation_data <- as.matrix(validation_data[, !names(validation_data) %in% c("Activity", "ID"), with = FALSE])
         ground_truth_labels <- validation_data$Activity
         
         # Predict on validation data
@@ -114,7 +117,7 @@ RFModelOptimisation <- function(feature_data, number_trees){
 removeBadFeatures <- function(feature_data, var_threshold, corr_threshold) {
   
   # Step 1: Calculate variance for numeric columns
-  numeric_columns <- feature_data[, .SD, .SDcols = !names(feature_data) %in% c("Activity", "Time", "ID")]
+  numeric_columns <- feature_data[, .SD, .SDcols = !names(feature_data) %in% c("Activity", "ID")]
   variances <- numeric_columns[, lapply(.SD, var, na.rm = TRUE)]
   selected_columns <- names(variances)[!is.na(variances) & variances > var_threshold]
   
@@ -131,8 +134,9 @@ removeBadFeatures <- function(feature_data, var_threshold, corr_threshold) {
 
 # define the bounds within which to search
 bounds <- list(
-  number_trees = c(100, 500),
-  number_features = c(10, 75)
+  mtry = c(2, 50),
+  max_depth = c(5, 30),
+  number_trees = c(100, 1000)
 )
 
 
@@ -147,23 +151,27 @@ for (behaviours in behaviour_columns){
   #behaviours <- "Activity"
   print(behaviours)
   
-  multiclass_data <- feature_data %>%
-    select(-(setdiff(behaviour_columns, behaviours))) %>%
-    rename("Activity" = !!sym(behaviours)) %>%
-    filter(!Activity == "")
+  # multiclass_data <- feature_data %>%
+  #   select(-(setdiff(behaviour_columns, behaviours))) %>%
+  #   rename("Activity" = !!sym(behaviours)) %>%
+  #   filter(!Activity == "")
+  
+  multiclass_data <- feature_data
   
   # remove the useless features
   good_features <- removeBadFeatures(multiclass_data, var_threshold = 0.5, corr_threshold = 0.9)
   selected_multiclass_data <- multiclass_data %>%
-    select(c(!!!syms(good_features), "Activity")) %>% 
+    select(c(!!!syms(good_features), "Activity", "ID")) %>% 
     na.omit()
   
   # Run the Bayesian Optimization
   results <- BayesianOptimization(
-    FUN = function(number_trees, number_features) {
+    FUN = function(number_trees, mtry, max_depth) {
       RFModelOptimisation(
         feature_data = selected_multiclass_data,
-        number_trees = number_trees
+        number_trees = number_trees,
+        mtry = mtry,
+        max_depth = max_depth
       )
     },
     bounds = bounds,
