@@ -30,7 +30,7 @@ if(file.exists(file.path(base_path, "Data", "RawOtherData.csv"))){
   
   test_data <- split_sig_data %>%
     filter(is_test) %>%
-    select(-row_idx, -total_rows, -is_test)  # Drop helper columns
+    select(-row_idx, -total_rows, -is_test)
   
   # Write the output files
   fwrite(other_data, file.path(base_path, "Data", "RawOtherData.csv"))

@@ -87,7 +87,7 @@ if(file.exists(file.path(params$base_path, "Data", "SampleFeatureData.csv"))){
   fwrite(sample_feature_data, file.path(params$base_path, "Data", "SampleFeatureData.csv"))
 }
 
-sample_feature_cols <- removeBadFeatures(sample_feature_data, threshold = 0.5) 
+sample_feature_cols <- removeBadFeatures(sample_feature_data, var_threshold = 0.5, cor_threshold = 0.9) 
 selected_feature_data <- sample_feature_data %>%
   select(c(!!!syms(sample_feature_cols), "Activity")) %>% 
   na.omit()
@@ -101,10 +101,38 @@ UMAPVis <- plotUMAPVisualisation(numeric_features, labels, minimum_distance = pa
 UMAPVis$UMAP_2D_plot
 ```
 
-
-
 ### Grouping the behaviours
-Because in Gabby's research project she is only looking for some specific behaviours, I can simplify my analysis and improve performance by grouping stuff together into generalised classes. The classes I want to try to find are 'Walking', 'Still', 'Foraging/Eating' and 'Tree Movement' (with this last class being a generalised assortment).
+Because in Gabby's research project she is only looking for some specific behaviours, I can simplify my analysis and improve performance by grouping stuff together into generalised classes. The classes I want to try to find are 'Walking', 'Still', 'Foraging/Eating' and 'Tree Movement' (with this last class being a generalised assortment). Examining the UMAP above, I can see some general trends that help me clump the behaviours together. 
+
+For this analysis I have selected the following generalisations.
+
+```{r generalisations}
+
+behaviours_generalisations <- data.table(
+  Activity = c(
+    "Branch Walking", "Tree Movement", "Swinging/Hanging",
+    "Climbing up", "Rapid Climbing", "Climbing Down",
+    "Foraging/Eating", "Tree Sitting", "Ground Sitting",
+    "Sleeping/Resting", "Shake", "Grooming",
+    "Walking", "Bound/Half-Bound"
+  )
+)
+
+# Add GeneralisedActivity column based on conditions
+behaviours_generalisations[, GeneralisedActivity := fifelse(
+  Activity %in% c("Branch Walking", "Tree Movement", "Swinging/Hanging"), "TreeMovement",
+  fifelse(Activity %in% c("Climbing up", "Rapid Climbing", "Climbing Down"), "Climbing",
+          fifelse(Activity %in% c("Foraging/Eating"), "Feed",
+                  fifelse(Activity == "Tree Sitting", "TreeSitting",
+                          fifelse(Activity == "Ground Sitting", "GroundSitting",
+                                  fifelse(Activity %in% c("Sleeping/Resting"), "Still",
+                                          fifelse(Activity %in% c("Shake", "Grooming"), "Groom",
+                                                  fifelse(Activity %in% c("Walking", "Bound/Half-Bound"), "Walking", "NA")
+                                          )))))))]
+
+kable(data, caption = "Generalised functional groups for original activities")
+
+```
 
 
 

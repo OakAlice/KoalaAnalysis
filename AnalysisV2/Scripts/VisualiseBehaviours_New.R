@@ -350,22 +350,6 @@ frequencyplotFeatureData <- function(feature_data, n_col){
   return(multiplot_frequency)
 }
 
-removeBadFeatures <- function(feature_data, threshold) {
-  
-  # Step 1: Calculate variance for numeric columns
-  numeric_columns <- feature_data[, .SD, .SDcols = !c("Activity", "Time", "ID")]
-  variances <- numeric_columns[, lapply(.SD, var, na.rm = TRUE)]
-  selected_columns <- names(variances)[!is.na(variances) & variances > threshold]
-  
-  # Step 2: Remove highly correlated features
-  numeric_columns <- numeric_columns[, ..selected_columns]
-  corr_matrix <- cor(numeric_columns, use = "pairwise.complete.obs")
-  high_corr <- findCorrelation(corr_matrix, cutoff = 0.9)
-  remaining_features <- setdiff(names(numeric_columns), names(numeric_columns)[high_corr])
-  
-  return(remaining_features)
-}
-
 
 
 

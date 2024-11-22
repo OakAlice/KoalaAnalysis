@@ -9,6 +9,7 @@ library(tsfeatures)
 library(umap)
 library(caret)
 library(ggpubr) # for retrieving the legend in one of my plots
+library(randomForest)
 
 # Hardcoded variables -----------------------------------------------------
 #base_path <- "D:/KoalaAnalysis/AnalysisV2"
@@ -50,17 +51,11 @@ if(file.exists(file.path(base_path, "Data", "CleanLabelledData.csv"))){
 # Split test data out and load other data ---------------------------------
 source(file.path(base_path, "Scripts", "SplitTestData_New.R"))
 
-# Generate features for training data -------------------------------------
-# currently set to only process a very small number of windows as it takes forever
-source(file.path(base_path, "Scripts", "GenerateFeatures_New.R"))
-
 # Visualise behaviours ----------------------------------------------------
 # this will save an html report 
 # there are hard coded variables to change in this script
 
 source(file.path(base_path, "Scripts", "RenderingMarkdown_New.R"))
-
-
 
 # Balance samples in training data ----------------------------------------
 # Because Meeka and Elsa have so much data, I need to downsample this
@@ -68,6 +63,10 @@ source(file.path(base_path, "Scripts", "RenderingMarkdown_New.R"))
 source(file.path(base_path, "Scripts", "BalanceOtherData_New.R"))
 
 
+
+# Generate features for training data -------------------------------------
+# currently set to only process a very small number of windows as it takes forever
+source(file.path(base_path, "Scripts", "GenerateFeatures_New.R"))
 
 
 

@@ -1,0 +1,175 @@
+
+# Hyperparameter Optimisation ---------------------------------------------
+
+# main call that splits data, generates function, and validates
+RFModelOptimisation <- function(feature_data, number_trees){
+  
+    # remove bad features
+    feature_data <- as.data.table(feature_data)
+    clean_cols <- removeBadFeatures(feature_data, var_threshold = 0.5, corr_threshold = 0.9)
+    clean_feature_data <- feature_data %>%
+      select(c(!!!syms(clean_cols), "Activity", "ID")) %>% 
+      select(-Time) %>%
+      na.omit()
+  
+  
+    f1_scores <- list()  # List to store F1-scores
+    
+    # Repeat the process 3 times
+    for (i in 1:3) {
+      message(i)
+      flush.console()
+      
+      tryCatch({
+        #Create training and validation data, split chronologically 
+        split_feature_data <- clean_feature_data %>%
+          group_by(ID, Activity) %>%
+          arrange(ID, Activity, row_number()) %>%  # Ensure consistent ordering within groups
+          mutate(
+            row_idx = row_number(),         # Get row index within each group
+            total_rows = n()                # Total rows per group
+          ) %>%
+          mutate(
+            is_test = row_idx > floor(0.8 * total_rows) # Define test rows (20%)
+          ) %>%
+          ungroup()
+        
+        # Separate into training and testing
+        training_data <- split_feature_data %>%
+          filter(!is_test) %>%
+          select(-c(row_idx, total_rows, is_test, ID))
+        
+        validation_data <- split_feature_data %>%
+          filter(is_test) %>%
+          select(-row_idx, -total_rows, -is_test, -ID)
+ 
+        message("data split")
+        flush.console()
+        
+      }, error = function(e) {
+        message("Error in data splitting: ", e$message)
+      })
+      
+      # Train RF model
+      tryCatch({
+        # RF training
+        RF_args <- list(
+          x = as.matrix(training_data[, setdiff(names(training_data), "Activity"), with = FALSE]),
+          y = as.factor(training_data$Activity),
+          ntree = number_trees
+        )
+        
+        RF_model <- do.call(randomForest, RF_args)
+        
+        message("model trained")
+        flush.console()
+        
+      }, error = function(e) {
+        message("Error in RF training: ", e$message)
+        stop()
+      })
+      
+      #### Validate the model ####
+      tryCatch({
+        numeric_validation_data <- as.matrix(validation_data[, !("Activity" %in% names(validation_data)), with = FALSE])
+        ground_truth_labels <- validation_data$Activity
+        
+        # Predict on validation data
+        predictions <- predict(RF_model, newdata = numeric_validation_data)
+        
+        message("predictions made")
+        flush.console()
+        
+      }, error = function(e) {
+        message("Error in making predictions: ", e$message)
+        stop()
+      })
+      
+      # Confusion matrix and performance metrics
+      confusion_matrix <- table(predictions, ground_truth_labels)
+      
+      # Handling mismatched dimensions
+      all_classes <- sort(union(colnames(confusion_matrix), rownames(confusion_matrix)))
+      conf_matrix_padded <- matrix(0, 
+                                   nrow = length(all_classes), 
+                                   ncol = length(all_classes),
+                                   dimnames = list(all_classes, all_classes))
+      conf_matrix_padded[rownames(confusion_matrix), colnames(confusion_matrix)] <- confusion_matrix
+      
+      # Calculate F1 scores
+      confusion_mtx <- confusionMatrix(conf_matrix_padded)
+      f1 <- confusion_mtx$byClass[, "F1"]
+      macro_f1 <- mean(f1, na.rm = TRUE)
+      
+      # Store the F1 score
+      f1_scores[[i]] <- macro_f1
+    }
+    
+    #### Calculate average F1-score ####
+    average_macro_f1 <- mean(unlist(f1_scores), na.rm = TRUE)
+    
+    return(list(Score = average_macro_f1, Pred = NA))
+}
+
+removeBadFeatures <- function(feature_data, var_threshold, corr_threshold) {
+  
+  # Step 1: Calculate variance for numeric columns
+  numeric_columns <- feature_data[, .SD, .SDcols = !names(feature_data) %in% c("Activity", "Time", "ID")]
+  variances <- numeric_columns[, lapply(.SD, var, na.rm = TRUE)]
+  selected_columns <- names(variances)[!is.na(variances) & variances > var_threshold]
+  
+  # Step 2: Remove highly correlated features
+  numeric_columns <- numeric_columns[, ..selected_columns]
+  corr_matrix <- cor(numeric_columns, use = "pairwise.complete.obs")
+  high_corr <- findCorrelation(corr_matrix, cutoff = corr_threshold)
+  remaining_features <- setdiff(names(numeric_columns), names(numeric_columns)[high_corr])
+  
+  return(remaining_features)
+}
+
+# Run the analysis --------------------------------------------------------
+
+# define the bounds within which to search
+bounds <- list(
+  number_trees = c(100, 500),
+  number_features = c(10, 75)
+)
+
+
+# define the behavioural groupings to use
+behaviour_columns <- c("Activity", "GeneralisedActivity")
+
+feature_data <- fread(file.path(base_path, "Data", "FeatureOtherData.csv"))
+feature_data <- feature_data %>% as.data.table()
+
+for (behaviours in behaviour_columns){
+  
+  #behaviours <- "Activity"
+  print(behaviours)
+  
+  multiclass_data <- feature_data %>%
+    select(-(setdiff(behaviour_columns, behaviours))) %>%
+    rename("Activity" = !!sym(behaviours)) %>%
+    filter(!Activity == "")
+  
+  # remove the useless features
+  good_features <- removeBadFeatures(multiclass_data, var_threshold = 0.5, corr_threshold = 0.9)
+  selected_multiclass_data <- multiclass_data %>%
+    select(c(!!!syms(good_features), "Activity")) %>% 
+    na.omit()
+  
+  # Run the Bayesian Optimization
+  results <- BayesianOptimization(
+    FUN = function(number_trees, number_features) {
+      RFModelOptimisation(
+        feature_data = selected_multiclass_data,
+        number_trees = number_trees
+      )
+    },
+    bounds = bounds,
+    init_points = 5,
+    n_iter = 10,
+    acq = "ucb",
+    kappa = 2.576 
+  )
+}

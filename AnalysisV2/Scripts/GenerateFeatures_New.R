@@ -89,16 +89,17 @@ processDataPerID <- function(id_raw_data, features_type, window_length, sample_r
           Time = Time[1],
           ID = ID[1],
           Activity = as.character(
-            names(sort(table(Activity), decreasing = TRUE))[1]),
-          GeneralisedActivity = as.character(
-            names(sort(table(Activity), decreasing = TRUE))[1]), 
-          OtherActivity = as.character(
             names(sort(table(Activity), decreasing = TRUE))[1])
         ) %>% ungroup()
     }
     
-    # Combine the window info, time series, and statistical features
-    combined_features <- cbind(window_info, single_row_features, statistical_features) %>% 
+    # Ensure that blank inputs are handled by replacing them with placeholders
+    window_info <- if (is.null(window_info) || nrow(window_info) == 0) data.frame(matrix(NA, nrow = 1, ncol = 0)) else window_info
+    single_row_features <- if (is.null(single_row_features) || nrow(single_row_features) == 0) data.frame(matrix(NA, nrow = 1, ncol = 0)) else single_row_features
+    statistical_features <- if (is.null(statistical_features) || nrow(statistical_features) == 0) data.frame(matrix(NA, nrow = 1, ncol = 0)) else statistical_features
+    
+    # Combine the data frames
+    combined_features <- cbind(window_info, single_row_features, statistical_features) %>%
       mutate(across(everything(), ~replace_na(., NA)))  # Ensure all columns are present
     
     return(combined_features)
@@ -237,18 +238,23 @@ if (file.exists(file.path(base_path, "Data", "FeatureOtherData.csv"))){
 } else {
   
   data1 <- fread(file.path(base_path, "Data", "RawOtherData.csv"))
-  data1 <- data1 %>% group_by(Activity, ID) %>% slice(1:100)
+  #data1 <- data1 %>% group_by(Activity, ID) %>% filter(ID == "Elsa") %>% slice(1:100)
   
   for (id in unique(data1$ID)){
-    data <- data1 %>% filter(ID == id) %>% as.data.table()
+    data <- data1 %>% 
+      filter(ID == id) %>% 
+      filter(!Activity == "") %>% 
+      as.data.table()
     
     feature_data_other <- generateFeatures(window_length, sample_rate, overlap_percent, 
                                            raw_data = data, 
                                            features_type = c("statistical", "timeseries"))
     
-    fwrite(feature_data_other, file.path(base_path, "Data", "FeatureOtherData.csv"))
-    
+    fwrite(feature_data_other, file.path(base_path, "Data", paste0(id, "_FeatureOtherData.csv")))
   }
+  feature_files <- list.files(file.path(base_path, "Data"), "*_FeatureOtherData.csv", full.names = TRUE) 
+  feature_data_other <- lapply(feature_files, read_csv, show_col_types = FALSE)
+  feature_data_other <- bind_rows(feature_data_other)
 }
 
 
