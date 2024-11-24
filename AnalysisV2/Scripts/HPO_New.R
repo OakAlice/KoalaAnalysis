@@ -6,12 +6,12 @@ RFModelOptimisation <- function(feature_data, number_trees, mtry, max_depth){
   
     # remove bad features
     feature_data <- as.data.table(feature_data)
+    
     clean_cols <- removeBadFeatures(feature_data, var_threshold = 0.5, corr_threshold = 0.9)
     clean_feature_data <- feature_data %>%
       select(c(!!!syms(clean_cols), "Activity", "ID")) %>% 
       #select(-Time) %>%
       na.omit()
-  
   
     f1_scores <- list()  # List to store F1-scores
     
@@ -33,15 +33,16 @@ RFModelOptimisation <- function(feature_data, number_trees, mtry, max_depth){
             is_test = row_idx > floor(0.8 * total_rows) # Define test rows (20%)
           ) %>%
           ungroup()
-        
+
         # Separate into training and testing
         training_data <- split_feature_data %>%
           filter(!is_test) %>%
-          select(-c(row_idx, total_rows, is_test, ID))
+          select(-c(row_idx, total_rows, is_test, ID, Time))
+        training_data$Activity <- as.factor(training_data$Activity)
         
         validation_data <- split_feature_data %>%
           filter(is_test) %>%
-          select(-row_idx, -total_rows, -is_test, -ID)
+          select(-row_idx, -total_rows, -is_test, -ID, -Time)
  
         message("data split")
         flush.console()
@@ -53,16 +54,25 @@ RFModelOptimisation <- function(feature_data, number_trees, mtry, max_depth){
       # Train RF model
       tryCatch({
         # RF training
-        RF_args <- list(
-          x = as.matrix(training_data[, setdiff(names(training_data), "Activity"), with = FALSE]),
-          y = as.factor(training_data$Activity),
-          ntree = number_trees,
-          class_weight = 'balanced',
-          mtry = mtry,
-          max_depth = max_depth
-        )
+        # RF_args <- list(
+        #   x = as.matrix(training_data[, setdiff(names(training_data), "Activity"), with = FALSE]),
+        #   y = as.factor(training_data$Activity),
+        #   ntree = number_trees,
+        #   class_weight = 'balanced',
+        #   mtry = mtry,
+        #   max_depth = max_depth
+        # )
+        # RF_model <- do.call(randomForest, RF_args)
         
-        RF_model <- do.call(randomForest, RF_args)
+        RF_model <- ranger(
+          dependent.variable.name = "Activity",
+          data = training_data,
+          num.trees = number_trees,
+          mtry = mtry,
+          max.depth = max_depth,
+          classification = TRUE,
+          importance = "impurity"
+        )
         
         message("model trained")
         flush.console()
@@ -72,24 +82,40 @@ RFModelOptimisation <- function(feature_data, number_trees, mtry, max_depth){
         stop()
       })
       
-      #### Validate the model ####
+      #### Validate the model
       tryCatch({
         numeric_validation_data <- as.matrix(validation_data[, !names(validation_data) %in% c("Activity", "ID"), with = FALSE])
         ground_truth_labels <- validation_data$Activity
         
+        if (anyNA(numeric_validation_data)) {
+          message("Validation data contains missing values!")
+          flush.console()
+        }
+        
         # Predict on validation data
-        predictions <- predict(RF_model, newdata = numeric_validation_data)
+        # predictions <- predict(RF_model, newdata = numeric_validation_data)
+        
+        numeric_validation_data <- as.data.frame(numeric_validation_data)
+        predictions <- predict(RF_model, data = numeric_validation_data)
+        predicted_classes <- predictions$predictions
         
         message("predictions made")
         flush.console()
         
       }, error = function(e) {
         message("Error in making predictions: ", e$message)
+        flush.console()
         stop()
       })
       
       # Confusion matrix and performance metrics
-      confusion_matrix <- table(predictions, ground_truth_labels)
+      # convert to factors with the same levels
+      all_classes <- sort(union(unique(predicted_classes), unique(ground_truth_labels)))
+      predicted_classes <- factor(unlist(predicted_classes), levels = all_classes)
+      ground_truth_labels <- factor(ground_truth_labels, levels = all_classes)
+      
+      # make a confusion matrix
+      confusion_matrix <- table(predicted_classes, ground_truth_labels)
       
       # Handling mismatched dimensions
       all_classes <- sort(union(colnames(confusion_matrix), rownames(confusion_matrix)))
@@ -140,15 +166,16 @@ bounds <- list(
 )
 
 
+
 # define the behavioural groupings to use
 behaviour_columns <- c("Activity", "GeneralisedActivity")
 
 feature_data <- fread(file.path(base_path, "Data", "FeatureOtherData.csv"))
 feature_data <- feature_data %>% as.data.table()
 
-for (behaviours in behaviour_columns){
+#for (behaviours in behaviour_columns){
   
-  #behaviours <- "Activity"
+  behaviours <- "Activity"
   print(behaviours)
   
   # multiclass_data <- feature_data %>%
@@ -158,17 +185,11 @@ for (behaviours in behaviour_columns){
   
   multiclass_data <- feature_data
   
-  # remove the useless features
-  good_features <- removeBadFeatures(multiclass_data, var_threshold = 0.5, corr_threshold = 0.9)
-  selected_multiclass_data <- multiclass_data %>%
-    select(c(!!!syms(good_features), "Activity", "ID")) %>% 
-    na.omit()
-  
   # Run the Bayesian Optimization
   results <- BayesianOptimization(
     FUN = function(number_trees, mtry, max_depth) {
       RFModelOptimisation(
-        feature_data = selected_multiclass_data,
+        feature_data = multiclass_data,
         number_trees = number_trees,
         mtry = mtry,
         max_depth = max_depth
@@ -180,4 +201,4 @@ for (behaviours in behaviour_columns){
     acq = "ucb",
     kappa = 2.576 
   )
-}
+#}
