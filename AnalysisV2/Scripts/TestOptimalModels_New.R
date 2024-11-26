@@ -17,6 +17,11 @@ update_feature_data <- function(data, multi) {
   return(data)
 }
 
+
+
+# Code here ---------------------------------------------------------------
+# I generally run this manually 
+
 # load in the best parameters (presuming you made them into a csv)
 hyperparamaters <- fread(file.path(base_path, "OptimalHyperparameters.csv"))
 
@@ -100,4 +105,35 @@ for (i in seq_len(nrow(hyperparamaters))) {
   
   # Write to CSV
   write.csv(metrics, file = file.path(base_path, "Output", paste0(parameter_row$Behaviour, "_performance_metrics.csv")), row.names = FALSE)
-}
+
+  # Assuming `conf_matrix_padded` is your confusion matrix data
+  confusion_mtx <- confusionMatrix(conf_matrix_padded)
+  
+  # Extracting confusion matrix data and reshaping it
+  conf_matrix_df <- as.data.frame(as.table(conf_matrix_padded))
+  colnames(conf_matrix_df) <- c("Predicted", "Actual", "Count")
+  
+  # Repeat rows based on the Count column (i.e., add multiple rows for each count)
+  conf_matrix_df_repeated <- conf_matrix_df[rep(1:nrow(conf_matrix_df), conf_matrix_df$Count), ]
+  
+  # Create a new column to classify the points as True Positive, False Positive, etc.
+  conf_matrix_df_repeated$Type <- "Other"
+  conf_matrix_df_repeated$Type[conf_matrix_df_repeated$Predicted == conf_matrix_df_repeated$Actual] <- "True Positive"
+  conf_matrix_df_repeated$Type[conf_matrix_df_repeated$Predicted != conf_matrix_df_repeated$Actual] <- "False Positive"
+  
+  # Assign colors based on classification type
+  conf_matrix_df_repeated$Color <- ifelse(conf_matrix_df_repeated$Type == "True Positive", "blue", "red")
+  
+  # Plotting with jitter
+  confusion_plot <- ggplot(conf_matrix_df_repeated, aes(x = Predicted, y = Actual, color = Color)) +
+    geom_jitter(width = 0.1, height = 0.1, alpha = 0.3, size = 2) +  # Add jitter with fixed point size
+    scale_color_manual(values = c("blue", "red")) +
+    labs(x = "Predicted Class", 
+         y = "Actual Class") +
+    theme_minimal() +
+    theme(legend.position = "bottom")
+  
+  ggsave(file.path(base_path, "Output", paste0(parameter_row$Behaviours, "_confusion_plot.pdf")),
+         plot = confusion_plot, width = 8, height = 6)
+  
+  }
