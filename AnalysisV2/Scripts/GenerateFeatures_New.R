@@ -236,7 +236,7 @@ generateStatisticalFeatures <- function(window_chunk, down_Hz) {
 
 # Processing features for the training data -------------------------------
 if (file.exists(file.path(base_path, "Data", "FeatureOtherData.csv"))){
-  feature_data_other <- fread(file.path(base_path, "Data", "FeatureOtherData.csv"))
+  print("training features already generated")
 } else {
   
   data1 <- fread(file.path(base_path, "Data", "RawOtherData.csv"))
@@ -262,7 +262,7 @@ if (file.exists(file.path(base_path, "Data", "FeatureOtherData.csv"))){
 
 
 # Processing features for the test data -----------------------------------
-if (file.exists(file.path(base_path, "Data", "FeatureTestData.csv"))){
+if (file.exists(file.path(base_path, "Data", "FeatureTestData_Clusters.csv"))){
   print("test features already generated")
 } else {
   
@@ -289,6 +289,36 @@ if (file.exists(file.path(base_path, "Data", "FeatureTestData.csv"))){
   feature_data_test <- reclustering_behaviours(feature_data_test)
   
   fwrite(feature_data_test, file.path(base_path, "Data", "FeatureTestData_Clusters.csv"))
+}
+
+# Processing features for the generalising data -----------------------------------
+if (file.exists(file.path(base_path, "Data", "FeatureGenData_Clusters.csv"))){
+  print("gen features already generated")
+} else {
+  
+  data1 <- fread(file.path(base_path, "Data", "RawGeneralisationData.csv"))
+  #data1 <- data1 %>% group_by(Activity, ID) %>% filter(ID == "Elsa") %>% slice(1:100)
+  
+  for (id in unique(data1$ID)){
+    data <- data1 %>% 
+      filter(ID == id) %>% 
+      filter(!Activity == "") %>% 
+      as.data.table()
+    
+    feature_data_test <- generateFeatures(window_length, sample_rate, overlap_percent, 
+                                          raw_data = data, 
+                                          features_type = c("statistical", "timeseries"))
+    
+    fwrite(feature_data_test, file.path(base_path, "Data", paste0(id, "_FeatureGenData.csv")))
+  }
+  feature_files <- list.files(file.path(base_path, "Data"), "*_FeatureGenData.csv", full.names = TRUE) 
+  feature_data_test <- lapply(feature_files, read_csv, show_col_types = FALSE)
+  feature_data_test <- bind_rows(feature_data_test)
+  
+  # apply the same renamings as for the training data
+  feature_data_test <- reclustering_behaviours(feature_data_test)
+  
+  fwrite(feature_data_test, file.path(base_path, "Data", "FeatureGenData_Clusters.csv"))
 }
 
 

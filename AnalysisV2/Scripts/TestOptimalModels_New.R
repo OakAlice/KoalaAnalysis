@@ -17,10 +17,85 @@ update_feature_data <- function(data, multi) {
   return(data)
 }
 
+library(ggplot2)
+library(caret)
+
+# Function to generate and save a confusion matrix plot
+generate_confusion_plot <- function(conf_matrix_padded, base_path, save_path) {
+  
+  # Extracting confusion matrix data and reshaping it
+  conf_matrix_df <- as.data.frame(as.table(conf_matrix_padded))
+  colnames(conf_matrix_df) <- c("Predicted", "Actual", "Count")
+  
+  # Repeat rows based on the Count column (i.e., add multiple rows for each count)
+  conf_matrix_df_repeated <- conf_matrix_df[rep(1:nrow(conf_matrix_df), conf_matrix_df$Count), ]
+  
+  # Create a new column to classify the points as True Positive, False Positive, etc.
+  conf_matrix_df_repeated$Type <- "Other"
+  conf_matrix_df_repeated$Type[conf_matrix_df_repeated$Predicted == conf_matrix_df_repeated$Actual] <- "True Positive"
+  conf_matrix_df_repeated$Type[conf_matrix_df_repeated$Predicted != conf_matrix_df_repeated$Actual] <- "False Positive"
+  
+  # Assign colors based on classification type
+  conf_matrix_df_repeated$Color <- ifelse(conf_matrix_df_repeated$Type == "True Positive", "blue", "red")
+  
+  # Plotting with jitter
+  confusion_plot <- ggplot(conf_matrix_df_repeated, aes(x = Predicted, y = Actual, color = Color)) +
+    geom_jitter(width = 0.1, height = 0.1, alpha = 0.3, size = 2) +  # Add jitter with fixed point size
+    scale_color_manual(values = c("blue", "red")) +
+    labs(x = "Predicted Class", 
+         y = "Actual Class") +
+    theme_minimal() +
+    theme(legend.position = "bottom")
+  
+  # Save the plot to a PDF
+  ggsave(save_path,
+         plot = confusion_plot, width = 16, height = 8)
+}
+
+# Function to compute confusion matrix metrics
+compute_metrics <- function(predicted_classes, ground_truth_labels) {
+  # Compute confusion matrix
+  confusion_matrix <- table(predicted_classes, ground_truth_labels)
+  all_classes <- union(levels(predicted_classes), levels(ground_truth_labels))
+  
+  # Create a padded confusion matrix
+  conf_matrix_padded <- matrix(0, nrow = length(all_classes), ncol = length(all_classes),
+                               dimnames = list(all_classes, all_classes))
+  conf_matrix_padded[rownames(confusion_matrix), colnames(confusion_matrix)] <- confusion_matrix
+  
+  # Calculate F1 score and other metrics using confusionMatrix from caret
+  confusion_mtx <- confusionMatrix(conf_matrix_padded)
+  
+  # Extract precision, recall, F1-score, accuracy, and prevalence
+  metrics <- data.frame(
+    Behaviour = rownames(confusion_mtx$byClass),  # Behaviour names (classes)
+    Precision = confusion_mtx$byClass[, "Precision"],
+    Recall = confusion_mtx$byClass[, "Recall"],
+    F1 = confusion_mtx$byClass[, "F1"],
+    Accuracy = confusion_mtx$byClass[, "Balanced Accuracy"],
+    Prevelance = confusion_mtx$byClass[, "Prevalence"] * length(predicted_classes)
+  )
+  
+  # Add macro-averaged metrics as the last row
+  metrics <- rbind(
+    metrics,
+    data.frame(
+      Behaviour = "Macro-Average",
+      Precision = mean(metrics$Precision, na.rm = TRUE),
+      Recall = mean(metrics$Recall, na.rm = TRUE),
+      F1 = mean(metrics$F1, na.rm = TRUE),
+      Accuracy = mean(metrics$Accuracy, na.rm = TRUE),
+      Prevelance = NA
+    )
+  )
+  
+  return(metrics)
+}
 
 
-# Code here ---------------------------------------------------------------
-# I generally run this manually 
+
+# Test the main model -----------------------------------------------------
+if(file.exists(file.path()))
 
 # load in the best parameters (presuming you made them into a csv)
 hyperparamaters <- fread(file.path(base_path, "OptimalHyperparameters.csv"))
@@ -70,70 +145,62 @@ for (i in seq_len(nrow(hyperparamaters))) {
   predictions <- predict(RF_model, data = numeric_testing_data)
   predicted_classes <- factor(predictions$predictions, levels = levels(ground_truth_labels))
   
-  # Compute confusion matrix
-  confusion_matrix <- table(predicted_classes, ground_truth_labels)
-  all_classes <- union(levels(predicted_classes), levels(ground_truth_labels))
-  conf_matrix_padded <- matrix(0, nrow = length(all_classes), ncol = length(all_classes),
-                               dimnames = list(all_classes, all_classes))
-  conf_matrix_padded[rownames(confusion_matrix), colnames(confusion_matrix)] <- confusion_matrix
-  
-  # Calculate F1 score
-  confusion_mtx <- confusionMatrix(conf_matrix_padded)
-  
-  # Extract precision, recall, and F1-score
-  metrics <- data.frame(
-    Behaviour = rownames(confusion_mtx$byClass),  # Behavior names
-    Precision = confusion_mtx$byClass[, "Precision"],
-    Recall = confusion_mtx$byClass[, "Recall"],
-    F1 = confusion_mtx$byClass[, "F1"],
-    Accuracy = confusion_mtx$byClass[, "Balanced Accuracy"],
-    Prevelance = confusion_mtx$byClass[, "Prevalence"] * length(predicted_classes)
-  )
-  
-  # Add macro-averaged metrics as the last row
-  metrics <- rbind(
-    metrics,
-    data.frame(
-      Behaviour = "Macro-Average",
-      Precision = mean(metrics$Precision, na.rm = TRUE),
-      Recall = mean(metrics$Recall, na.rm = TRUE),
-      F1 = mean(metrics$F1, na.rm = TRUE),
-      Accuracy = mean(metrics$Accuracy, na.rm = TRUE),
-      Prevelance = NA
-    )
-  )
+  metrics <- compute_metrics(predicted_classes, ground_truth_labels)
   
   # Write to CSV
   write.csv(metrics, file = file.path(base_path, "Output", paste0(parameter_row$Behaviour, "_performance_metrics.csv")), row.names = FALSE)
 
-  # Assuming `conf_matrix_padded` is your confusion matrix data
-  confusion_mtx <- confusionMatrix(conf_matrix_padded)
+  # make and save a plot
+  generate_confusion_plot(conf_matrix_padded, base_path, 
+                          save_path= file.path(base_path, "Output", paste0(parameter_row$Behaviours, "_confusion_plot.pdf")))
   
-  # Extracting confusion matrix data and reshaping it
-  conf_matrix_df <- as.data.frame(as.table(conf_matrix_padded))
-  colnames(conf_matrix_df) <- c("Predicted", "Actual", "Count")
   
-  # Repeat rows based on the Count column (i.e., add multiple rows for each count)
-  conf_matrix_df_repeated <- conf_matrix_df[rep(1:nrow(conf_matrix_df), conf_matrix_df$Count), ]
-  
-  # Create a new column to classify the points as True Positive, False Positive, etc.
-  conf_matrix_df_repeated$Type <- "Other"
-  conf_matrix_df_repeated$Type[conf_matrix_df_repeated$Predicted == conf_matrix_df_repeated$Actual] <- "True Positive"
-  conf_matrix_df_repeated$Type[conf_matrix_df_repeated$Predicted != conf_matrix_df_repeated$Actual] <- "False Positive"
-  
-  # Assign colors based on classification type
-  conf_matrix_df_repeated$Color <- ifelse(conf_matrix_df_repeated$Type == "True Positive", "blue", "red")
-  
-  # Plotting with jitter
-  confusion_plot <- ggplot(conf_matrix_df_repeated, aes(x = Predicted, y = Actual, color = Color)) +
-    geom_jitter(width = 0.1, height = 0.1, alpha = 0.3, size = 2) +  # Add jitter with fixed point size
-    scale_color_manual(values = c("blue", "red")) +
-    labs(x = "Predicted Class", 
-         y = "Actual Class") +
-    theme_minimal() +
-    theme(legend.position = "bottom")
-  
-  ggsave(file.path(base_path, "Output", paste0(parameter_row$Behaviours, "_confusion_plot.pdf")),
-         plot = confusion_plot, width = 16, height = 8)
-  
-  }
+}
+
+
+
+# Test the sample deployment data --------------------------------------------
+# same as above
+# add an if else statement so I can source repeatedly
+Behaviour <- "Activity"
+
+# extract the variables 
+RF_model <- readRDS(file.path(base_path, "Output", paste0(Behaviour, "_model.rds")))
+variables <- RF_model$forest$independent.variable.names
+
+# load in the generalisationb data and format it
+clean_gen_data <- fread(file.path(base_path, "Data", "FeatureGenData_Clusters.csv")) %>%
+  update_feature_data(Behaviour) %>%
+  select(all_of(c(variables, "Activity"))) %>%
+  na.omit()
+
+numeric_gen_data <- as.matrix(clean_gen_data[, !names(clean_gen_data) %in% c("Activity"), with = FALSE])
+ground_truth_labels <- factor(clean_gen_data$Activity)
+
+
+# Make predictions
+predictions <- predict(RF_model, data = numeric_gen_data)
+predicted_classes <- factor(predictions$predictions, levels = levels(ground_truth_labels))
+
+# calculkate the metrics
+metrics <- compute_metrics(predicted_classes, ground_truth_labels)
+
+# Write to CSV
+write.csv(metrics, file = file.path(base_path, "Output", paste0(Behaviour, "_deploysample_performance_metrics.csv")), row.names = FALSE)
+
+# make and save a plot
+generate_confusion_plot(conf_matrix_padded, base_path, save_path= file.path(base_path, "Output", "Activity_deploysample_data_confusion_plot.pdf"))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
