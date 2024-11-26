@@ -23,54 +23,30 @@ overlap_percent <- 50
 sig_individuals <- c("Elsa", "Meeka", "Hardy", "Nicole")
 
 # Load and modify data --------------------------------------------------
-# if(file.exists(file.path(base_path, "Data", "CleanLabelledData.csv"))){
-#   data <- fread(file.path(base_path, "Data", "CleanLabelledData.csv"))
-# } else {
-#   data <- fread(file.path(base_path, "Data", "FinalTrainingData.csv")) # data Gabby gave me
-#   data <- data %>% rename(Activity = activity,
-#                           Time = time,
-#                           Accelerometer.X = X_accel,
-#                           Accelerometer.Y = Y_accel,
-#                           Accelerometer.Z = Z_accel,
-#                           Gyroscope.X = X_gyro,
-#                           Gyroscope.Y = Y_gyro,
-#                           Gyroscope.Z = Z_gyro
-#   )
-#   # elsa and meeka were collected at 100Hz and all the others were 50 Hz
-#   ElsaMeekadata <- data %>% 
-#     filter(ID %in% c("Meeka", "Elsa")) %>% 
-#     mutate(rownum = row_number()) %>% 
-#     filter(rownum %% 2 == 1) %>% 
-#     select(-rownum)
-#   
-#   Otherdata <- data %>% filter(!ID %in% c('Elsa', 'Meeka'))
-#   
-#   data <- rbind(ElsaMeekadata, Otherdata)
-#   
-#   fwrite(data, file.path(base_path, "Data", "CleanLabelledData.csv"))
-# }
+source(file.path(base_path, "Scripts", "LoadAndTidy_New.R"))
 
 # Split test data out and load other data ---------------------------------
-#source(file.path(base_path, "Scripts", "SplitTestData_New.R"))
+source(file.path(base_path, "Scripts", "SplitTestData_New.R"))
 
 # Visualise behaviours ----------------------------------------------------
-# this will save an html report 
-# there are hard coded variables to change in this script
-
-#source(file.path(base_path, "Scripts", "RenderingMarkdown_New.R"))
-
-# Balance samples in training data ----------------------------------------
-# Because Meeka and Elsa have so much data, I need to downsample this
-# I did this manually, but if you hit source it will just pull in the end result
-#source(file.path(base_path, "Scripts", "BalanceOtherData_New.R"))
-
-
+# this will save an html report # automation in progress
+# source(file.path(base_path, "Scripts", "RenderingMarkdown_New.R"))
 
 # Generate features for training data -------------------------------------
-# currently set to only process a very small number of windows as it takes forever
-#source(file.path(base_path, "Scripts", "GenerateFeatures_New.R"))
+source(file.path(base_path, "Scripts", "GenerateFeatures_New.R"))
+
+# Reclustering the Activities ---------------------------------------------
+source(file.path(base_path, "Scripts", "ClusteringActivities_New.R"))
 
 # Hyperparmeter Optimisation ----------------------------------------------
 source(file.path(base_path, "Scripts", "HPO_New.R"))
+# make the optimal parameters from each HPO round into a csv
+
+# Generate test features --------------------------------------------------
+# rerun the same script as for training data but with the test data
+
+# Test optimal models -----------------------------------------------------
+source(file.path(base_path, "Scripts", "TestOptimalModels_New.R"))
+
 
 

@@ -1,6 +1,23 @@
 
 # Hyperparameter Optimisation ---------------------------------------------
 
+# remove redundant and NA columns
+removeBadFeatures <- function(feature_data, var_threshold, corr_threshold) {
+  
+  # Step 1: Calculate variance for numeric columns
+  numeric_columns <- feature_data[, .SD, .SDcols = !names(feature_data) %in% c("Activity", "ID")]
+  variances <- numeric_columns[, lapply(.SD, var, na.rm = TRUE)]
+  selected_columns <- names(variances)[!is.na(variances) & variances > var_threshold]
+  
+  # Step 2: Remove highly correlated features
+  numeric_columns <- numeric_columns[, ..selected_columns]
+  corr_matrix <- cor(numeric_columns, use = "pairwise.complete.obs")
+  high_corr <- findCorrelation(corr_matrix, cutoff = corr_threshold)
+  remaining_features <- setdiff(names(numeric_columns), names(numeric_columns)[high_corr])
+  
+  return(remaining_features)
+}
+
 # main call that splits data, generates function, and validates
 RFModelOptimisation <- function(feature_data, number_trees, mtry, max_depth){
   
@@ -140,22 +157,6 @@ RFModelOptimisation <- function(feature_data, number_trees, mtry, max_depth){
     return(list(Score = average_macro_f1, Pred = NA))
 }
 
-removeBadFeatures <- function(feature_data, var_threshold, corr_threshold) {
-  
-  # Step 1: Calculate variance for numeric columns
-  numeric_columns <- feature_data[, .SD, .SDcols = !names(feature_data) %in% c("Activity", "ID")]
-  variances <- numeric_columns[, lapply(.SD, var, na.rm = TRUE)]
-  selected_columns <- names(variances)[!is.na(variances) & variances > var_threshold]
-  
-  # Step 2: Remove highly correlated features
-  numeric_columns <- numeric_columns[, ..selected_columns]
-  corr_matrix <- cor(numeric_columns, use = "pairwise.complete.obs")
-  high_corr <- findCorrelation(corr_matrix, cutoff = corr_threshold)
-  remaining_features <- setdiff(names(numeric_columns), names(numeric_columns)[high_corr])
-  
-  return(remaining_features)
-}
-
 # Run the analysis --------------------------------------------------------
 
 # define the bounds within which to search
@@ -170,12 +171,12 @@ bounds <- list(
 # define the behavioural groupings to use
 behaviour_columns <- c("Activity", "GeneralisedActivity")
 
-feature_data <- fread(file.path(base_path, "Data", "FeatureOtherData.csv"))
+feature_data <- fread(file.path(base_path, "Data", "FeatureOtherData_Clusters.csv"))
 feature_data <- feature_data %>% as.data.table()
 
 #for (behaviours in behaviour_columns){
   
-  behaviours <- "Activity"
+  behaviours <- "GeneralisedActivity"
   print(behaviours)
   
   # multiclass_data <- feature_data %>%
