@@ -49,6 +49,7 @@ rsconnect/
 *.csv
 *.png
 *.pdf
+*.rds
 
 # Specific folders
 */Data/

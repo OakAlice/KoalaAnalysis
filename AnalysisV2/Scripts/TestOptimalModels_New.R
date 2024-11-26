@@ -134,6 +134,6 @@ for (i in seq_len(nrow(hyperparamaters))) {
     theme(legend.position = "bottom")
   
   ggsave(file.path(base_path, "Output", paste0(parameter_row$Behaviours, "_confusion_plot.pdf")),
-         plot = confusion_plot, width = 8, height = 6)
+         plot = confusion_plot, width = 16, height = 8)
   
   }
