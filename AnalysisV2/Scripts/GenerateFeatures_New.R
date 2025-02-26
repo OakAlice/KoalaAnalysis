@@ -15,7 +15,6 @@ generateFeatures <- function(window_length, sample_rate, overlap_percent, raw_da
   # Process each ID's raw_data
   features_by_id <- list()
   for (id in unique(raw_data$ID)) {
-    print(id)
     # I changed the way this was subsetted. Was previously raw_data_by_id[[as.character(id)]]
     features_by_id[[id]] <- processDataPerID(
       id_raw_data = raw_data_by_id[[id]],
@@ -50,7 +49,7 @@ processDataPerID <- function(id_raw_data, features_type, window_length, sample_r
     window_chunk <- id_raw_data[start_index:end_index, ]
     
     # Initialize output features
-    window_info <- tibble(Time = NA, ID = NA, Activity = NA, GeneralisedActivity = NA, OtherActivity = NA)
+    window_info <- tibble(Time = NA, ID = NA, Activity = NA)
     statistical_features <- tibble() 
     single_row_features <- tibble()  
     
@@ -82,15 +81,18 @@ processDataPerID <- function(id_raw_data, features_type, window_length, sample_r
       }
     }
     
-    # Extract window identifying info
     if (nrow(window_chunk) > 0) {
       window_info <- window_chunk %>% 
         summarise(
-          Time = Time[1],
-          ID = ID[1],
-          Activity = as.character(
-            names(sort(table(Activity), decreasing = TRUE))[1])
-        ) %>% ungroup()
+          Time = first(Time),
+          ID = first(ID),
+          Activity = if ("Activity" %in% names(.)) {
+            as.character(names(sort(table(Activity), decreasing = TRUE))[1])
+          } else {
+            NA
+          }
+        ) %>% 
+        ungroup()
     }
     
     # Ensure that blank inputs are handled by replacing them with placeholders
@@ -216,13 +218,13 @@ generateStatisticalFeatures <- function(window_chunk, down_Hz) {
   }
   
   # calculate SMA, ODBA, and VDBA
-  result[, SMA := sum(rowSums(abs(window_chunk[, ..available_axes]))) / nrow(window_chunk)]
-  ODBA <- rowSums(abs(window_chunk[, ..available_axes]))
+  result[, SMA := sum(rowSums(abs(window_chunk[, available_axes, with = FALSE]))) / nrow(window_chunk)]
+  ODBA <- rowSums(abs(window_chunk[, available_axes, with = FALSE]))
   result[, `:=`(
     minODBA = min(ODBA, na.rm = TRUE),
     maxODBA = max(ODBA, na.rm = TRUE)
   )]
-  VDBA <- sqrt(rowSums(window_chunk[, ..available_axes]^2))
+  VDBA <- sqrt(rowSums(window_chunk[, available_axes, with = FALSE]^2))
   result[, `:=`(
     minVDBA = min(VDBA, na.rm = TRUE),
     maxVDBA = max(VDBA, na.rm = TRUE)
